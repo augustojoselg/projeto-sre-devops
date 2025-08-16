@@ -1,0 +1,58 @@
+name: 'Terraform CI/CD'
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ secrets.TF_VERSION }}
+
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.SA399820 }}
+        project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
+
+    - name: Configure Docker
+      run: gcloud auth configure-docker
+
+    - name: Terraform Init
+      run: |
+        cd Terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd Terraform
+        terraform plan \
+          -var="project_id=${{ secrets.GOOGLE_PROJECT_ID }}" \
+          -var="discord_webhook_url=${{ secrets.WEBHOOKDISCORD }}" \
+          -var="region=${{ secrets.GCP_REGION }}" \
+          -var="zone=${{ secrets.GCP_ZONE }}" \
+          -out=tfplan
+      env:
+        TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
+        TF_VAR_discord_webhook_url: ${{ secrets.WEBHOOKDISCORD }}
+        TF_VAR_region: ${{ secrets.GCP_REGION }}
+        TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: |
+        cd Terraform
+        terraform apply -auto-approve tfplan
+      env:
+        TF_VAR_discord_webhook_url: ${{ secrets.WEBHOOKDISCORD }}

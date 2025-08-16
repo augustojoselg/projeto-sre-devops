@@ -1,0 +1,66 @@
+steps:
+  # Build e teste da infraestrutura
+  - name: 'hashicorp/terraform:1.0'
+    args:
+      - init
+      - -input=false
+    dir: 'Terraform'
+    
+  - name: 'hashicorp/terraform:1.0'
+    args:
+      - plan
+      - -input=false
+      - -out=tfplan
+    dir: 'Terraform'
+    
+  - name: 'hashicorp/terraform:1.0'
+    args:
+      - apply
+      - -input=false
+      - tfplan
+    dir: 'Terraform'
+    
+  # Deploy das aplicações
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - apply
+      - -f
+      - devops/
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      
+  # Deploy do monitoramento
+  - name: 'gcr.io/cloud-builders/helm'
+    args:
+      - upgrade
+      - --install
+      - prometheus-stack
+      - prometheus-community/kube-prometheus-stack
+      - --namespace=monitoring
+      - --create-namespace
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      
+  # Testes de estresse
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - create
+      - job
+      - stress-test
+      - --from=cronjob/automated-stress-test
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      
+  # Health check
+  - name: 'curlimages/curl'
+    args:
+      - -f
+      - https://${_DOMAIN_NAME}/health
+    waitFor: ['-']
+    
+timeout: '1200s'
+options:
+  logging: CLOUD_LOGGING_ONLY
