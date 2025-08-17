@@ -60,7 +60,7 @@ locals {
 resource "google_compute_subnetwork" "subnet" {
   name          = "${var.project_id}-subnet"
   ip_cidr_range = var.subnet_cidr
-  network       = google_compute_network.vpc.id
+  network       = local.vpc_id
   region        = var.region
 
   # Habilitar logs de fluxo para monitoramento
@@ -83,7 +83,7 @@ resource "google_container_cluster" "primary" {
   # enable_autopilot = false  # Removido para usar cluster Standard
 
   # Configuração de rede
-  network    = google_compute_network.vpc.name
+  network    = local.vpc_id
   subnetwork = google_compute_subnetwork.subnet.name
 
   # Configuração de IP para pods e serviços
@@ -249,7 +249,7 @@ resource "google_project_iam_member" "gke_node_worker" {
 # 6. Firewall para o cluster
 resource "google_compute_firewall" "gke_master" {
   name    = "gke-master-${var.project_id}"
-  network = google_compute_network.vpc.name
+  network = local.vpc_id
 
   allow {
     protocol = "tcp"
@@ -262,7 +262,7 @@ resource "google_compute_firewall" "gke_master" {
 
 resource "google_compute_firewall" "gke_nodes" {
   name    = "gke-nodes-${var.project_id}"
-  network = google_compute_network.vpc.name
+  network = local.vpc_id
 
   allow {
     protocol = "tcp"
@@ -282,7 +282,7 @@ resource "google_compute_firewall" "gke_nodes" {
 resource "google_compute_router" "router" {
   name    = "${var.project_id}-router"
   region  = var.region
-  network = google_compute_network.vpc.id
+  network = local.vpc_id
 }
 
 resource "google_compute_router_nat" "nat" {
@@ -333,15 +333,9 @@ resource "google_compute_router_nat" "nat" {
 
 
 
-# 14. Cloud Armor para segurança adicional (REUTILIZÁVEL - só cria se não existir)
-data "google_compute_security_policy" "security_policy" {
-  name = "security-policy"
-}
-
-# Fallback para criar Security Policy se não existir
+# 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
 resource "google_compute_security_policy" "security_policy" {
-  count = data.google_compute_security_policy.security_policy.name == "security-policy" ? 0 : 1
-  name  = "security-policy"
+  name = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -401,7 +395,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Block XSS attacks"
   }
-
+  
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -413,57 +407,38 @@ locals {
   security_policy_id = data.google_compute_security_policy.security_policy.name == "security-policy" ? data.google_compute_security_policy.security_policy.id : google_compute_security_policy.security_policy[0].id
 }
 
-# 15. Cloud KMS para criptografia (REUTILIZÁVEL - só cria se não existir)
-data "google_kms_key_ring" "keyring" {
-  name     = "gke-keyring"
-  location = var.region
-}
-
-# Fallback para criar Key Ring se não existir
+# 15. Cloud KMS para criptografia (REUTILIZÁVEL)
 resource "google_kms_key_ring" "keyring" {
-  count    = data.google_kms_key_ring.keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
-
+  
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# Usar Key Ring existente ou criado
-locals {
-  keyring_id = data.google_kms_key_ring.keyring.name == "gke-keyring" ? data.google_kms_key_ring.keyring.id : google_kms_key_ring.keyring[0].id
-}
-
-data "google_kms_crypto_key" "key" {
-  name     = "gke-key"
-  key_ring = local.keyring_id
-}
-
-# Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  count    = data.google_kms_crypto_key.key.name == "gke-key" ? 0 : 1
-  name     = "gke-key"
-  key_ring = local.keyring_id
+  name      = "gke-key"
+  key_ring  = google_kms_key_ring.keyring.id
 
   lifecycle {
-    prevent_destroy       = true
+    prevent_destroy = true
     create_before_destroy = true
   }
 }
 
 # Usar Crypto Key existente ou criado
 locals {
-  crypto_key_id = data.google_kms_crypto_key.key.name == "gke-key" ? data.google_kms_crypto_key.key.id : google_kms_crypto_key.key[0].id
+  crypto_key_id = google_kms_crypto_key.key.id
 }
 
 # 16. IAM para Cloud KMS
 resource "google_kms_crypto_key_iam_member" "crypto_key" {
-  crypto_key_id = local.crypto_key_id
+  crypto_key_id = google_kms_crypto_key.key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
-
+  
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true

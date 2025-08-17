@@ -16,8 +16,8 @@ output "cluster_location" {
 
 
 output "vpc_name" {
-  description = "Nome da VPC"
-  value       = google_compute_network.vpc.name
+  description = "Nome da VPC criada"
+  value       = local.vpc_id
 }
 
 output "subnet_name" {
