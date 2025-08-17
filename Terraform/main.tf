@@ -45,7 +45,7 @@ resource "google_compute_network" "vpc" {
   routing_mode            = "REGIONAL"
 
   depends_on = [google_project_service.compute]
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -401,7 +401,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Block XSS attacks"
   }
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -424,7 +424,7 @@ resource "google_kms_key_ring" "keyring" {
   count    = data.google_kms_key_ring.keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -443,12 +443,12 @@ data "google_kms_crypto_key" "key" {
 
 # Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  count     = data.google_kms_crypto_key.key.name == "gke-key" ? 0 : 1
-  name      = "gke-key"
-  key_ring  = local.keyring_id
+  count    = data.google_kms_crypto_key.key.name == "gke-key" ? 0 : 1
+  name     = "gke-key"
+  key_ring = local.keyring_id
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy       = true
     create_before_destroy = true
   }
 }
@@ -463,7 +463,7 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
   crypto_key_id = local.crypto_key_id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
