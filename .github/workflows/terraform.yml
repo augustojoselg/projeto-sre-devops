@@ -1,10 +1,23 @@
-name: 'Terraform CI/CD'
+name: 'Terraform CI/CD Pipeline'
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
+    paths:
+      - 'Terraform/**'
+      - '.github/workflows/terraform.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'Terraform/**'
+      - '.github/workflows/terraform.yml'
+
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+  GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
+  GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+  GOOGLE_CLUSTER_NAME: ${{ secrets.GOOGLE_CLUSTER_NAME }}
+  GOOGLE_CLUSTER_ZONE: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
 
 jobs:
   terraform:
@@ -13,46 +26,63 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
       with:
-        terraform_version: ${{ secrets.TF_VERSION }}
+        terraform_version: "1.5.0"
 
     - name: Setup Google Cloud CLI
-      uses: google-github-actions/setup-gcloud@v1
+      uses: google-github-actions/setup-gcloud@v2
       with:
-        service_account_key: ${{ secrets.SA399820 }}
+        service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
 
-    - name: Configure Docker
-      run: gcloud auth configure-docker
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ secrets.GOOGLE_CLUSTER_NAME }} \
+          --zone ${{ secrets.GOOGLE_CLUSTER_ZONE }} \
+          --project ${{ secrets.GOOGLE_PROJECT_ID }}
 
     - name: Terraform Init
-      run: |
-        cd Terraform
-        terraform init
+      working-directory: ./Terraform
+      run: terraform init
+
+    - name: Terraform Format Check
+      working-directory: ./Terraform
+      run: terraform fmt -check
 
     - name: Terraform Plan
-      run: |
-        cd Terraform
-        terraform plan \
-          -var="project_id=${{ secrets.GOOGLE_PROJECT_ID }}" \
-          -var="discord_webhook_url=${{ secrets.WEBHOOKDISCORD }}" \
-          -var="region=${{ secrets.GCP_REGION }}" \
-          -var="zone=${{ secrets.GCP_ZONE }}" \
-          -out=tfplan
+      working-directory: ./Terraform
+      run: terraform plan -out=tfplan
       env:
         TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
-        TF_VAR_discord_webhook_url: ${{ secrets.WEBHOOKDISCORD }}
-        TF_VAR_region: ${{ secrets.GCP_REGION }}
-        TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+        TF_VAR_region: ${{ secrets.GOOGLE_REGION }}
+        TF_VAR_zone: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main'
-      run: |
-        cd Terraform
-        terraform apply -auto-approve tfplan
+      working-directory: ./Terraform
+      run: terraform apply -auto-approve tfplan
       env:
-        TF_VAR_discord_webhook_url: ${{ secrets.WEBHOOKDISCORD }}
+        TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
+        TF_VAR_region: ${{ secrets.GOOGLE_REGION }}
+        TF_VAR_zone: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
+
+    - name: Verify Deployments
+      if: github.ref == 'refs/heads/main'
+      run: |
+        kubectl get pods -n devops
+        kubectl get pods -n sre
+        kubectl get services -n devops
+        kubectl get services -n sre
+        kubectl get ingress -n devops
+        kubectl get ingress -n sre
+
+    - name: Health Check
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Verificando saúde das aplicações..."
+        kubectl get nodes
+        kubectl get pods -A

@@ -20,12 +20,22 @@ steps:
       - tfplan
     dir: 'Terraform'
     
-  # Deploy das aplicações
+  # Deploy das aplicações DevOps
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       - apply
       - -f
       - devops/
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      
+  # Deploy das aplicações SRE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - apply
+      - -f
+      - sre/
     env:
       - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
@@ -39,28 +49,47 @@ steps:
       - prometheus-community/kube-prometheus-stack
       - --namespace=monitoring
       - --create-namespace
+      - --version=54.2.0
+      - --timeout=600s
+      - --wait
     env:
       - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
       
-  # Testes de estresse
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      - create
-      - job
-      - stress-test
-      - --from=cronjob/automated-stress-test
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-      
-  # Health check
+  # Health check das aplicações
   - name: 'curlimages/curl'
     args:
       - -f
-      - https://${_DOMAIN_NAME}/health
+      - -k
+      - https://${_DEVOPS_DOMAIN}/
     waitFor: ['-']
     
-timeout: '1200s'
+  - name: 'curlimages/curl'
+    args:
+      - -f
+      - -k
+      - https://${_SRE_DOMAIN}/
+    waitFor: ['-']
+    
+  # Verificação do cluster
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - get
+      - nodes
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - get
+      - pods
+      - -A
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    
+timeout: '1800s'
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'

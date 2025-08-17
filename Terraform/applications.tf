@@ -1,37 +1,25 @@
 # Aplicações DevOps e SRE
 # Este arquivo automatiza o deploy completo das aplicações
 
-# 1. Namespace para DevOps
-resource "kubernetes_namespace" "devops" {
+# 1. Verificar se o namespace DevOps existe
+data "kubernetes_namespace" "devops" {
   metadata {
     name = "devops"
-    labels = {
-      name = "devops"
-      environment = "production"
-    }
   }
-  
-  depends_on = [google_container_cluster.primary]
 }
 
-# 2. Namespace para SRE
-resource "kubernetes_namespace" "sre" {
+# 2. Verificar se o namespace SRE existe
+data "kubernetes_namespace" "sre" {
   metadata {
     name = "sre"
-    labels = {
-      name = "sre"
-      environment = "production"
-    }
   }
-  
-  depends_on = [google_container_cluster.primary]
 }
 
 # 3. Deployment da aplicação DevOps
 resource "kubernetes_deployment" "devops_whoami" {
   metadata {
     name      = "devops-whoami"
-    namespace = kubernetes_namespace.devops.metadata[0].name
+    namespace = data.kubernetes_namespace.devops.metadata[0].name
     labels = {
       app = "devops-whoami"
     }
@@ -94,15 +82,13 @@ resource "kubernetes_deployment" "devops_whoami" {
       }
     }
   }
-
-  depends_on = [kubernetes_namespace.devops]
 }
 
 # 4. Deployment da aplicação SRE
 resource "kubernetes_deployment" "sre_whoami" {
   metadata {
     name      = "sre-whoami"
-    namespace = kubernetes_namespace.sre.metadata[0].name
+    namespace = data.kubernetes_namespace.sre.metadata[0].name
     labels = {
       app = "sre-whoami"
     }
@@ -165,15 +151,13 @@ resource "kubernetes_deployment" "sre_whoami" {
       }
     }
   }
-
-  depends_on = [kubernetes_namespace.sre]
 }
 
 # 5. Service para DevOps
 resource "kubernetes_service" "devops_whoami_service" {
   metadata {
     name      = "devops-whoami-service"
-    namespace = kubernetes_namespace.devops.metadata[0].name
+    namespace = data.kubernetes_namespace.devops.metadata[0].name
   }
 
   spec {
@@ -197,7 +181,7 @@ resource "kubernetes_service" "devops_whoami_service" {
 resource "kubernetes_service" "sre_whoami_service" {
   metadata {
     name      = "sre-whoami-service"
-    namespace = kubernetes_namespace.sre.metadata[0].name
+    namespace = data.kubernetes_namespace.sre.metadata[0].name
   }
 
   spec {
@@ -221,7 +205,7 @@ resource "kubernetes_service" "sre_whoami_service" {
 resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
   metadata {
     name      = "devops-whoami-ingress"
-    namespace = kubernetes_namespace.devops.metadata[0].name
+    namespace = data.kubernetes_namespace.devops.metadata[0].name
     annotations = {
       "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect" = "true"
@@ -255,15 +239,13 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
       }
     }
   }
-
-  depends_on = [kubernetes_service.devops_whoami_service]
 }
 
 # 8. Ingress para SRE
 resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
   metadata {
     name      = "sre-whoami-ingress"
-    namespace = kubernetes_namespace.sre.metadata[0].name
+    namespace = data.kubernetes_namespace.sre.metadata[0].name
     annotations = {
       "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect" = "true"
@@ -297,8 +279,6 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
       }
     }
   }
-
-  depends_on = [kubernetes_service.sre_whoami_service]
 }
 
 # 9. Outputs para as aplicações
@@ -316,10 +296,10 @@ output "sre_application_url" {
 
 output "devops_namespace" {
   description = "Namespace da aplicação DevOps"
-  value       = kubernetes_namespace.devops.metadata[0].name
+  value       = data.kubernetes_namespace.devops.metadata[0].name
 }
 
 output "sre_namespace" {
   description = "Namespace da aplicação SRE"
-  value       = kubernetes_namespace.sre.metadata[0].name
+  value       = data.kubernetes_namespace.sre.metadata[0].name
 }

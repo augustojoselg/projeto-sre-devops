@@ -5,30 +5,31 @@
 # Depois: Descomente este arquivo e execute novamente para criar os recursos Kubernetes
 
 # 1. Cloud Build Trigger para aplicação principal
-# COMENTADO - será habilitado após cluster estar ativo
-# resource "google_cloudbuild_trigger" "app_trigger" {
-#   name        = "app-build-trigger"
-#   description = "Trigger para build da aplicação principal"
-#   project     = var.project_id
-#   
-#   github {
-#     owner  = var.github_owner
-#     name   = "projeto-sre-devops"
-#     push {
-#       branch = "main"
-#     }
-#   }
-#   
-#   filename = "cloudbuild.yaml"
-#   
-#   substitutions = {
-#     _CLUSTER_NAME = google_container_cluster.primary.name
-#     _ZONE         = var.zone
-#     _PROJECT_ID   = var.project_id
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "google_cloudbuild_trigger" "app_trigger" {
+  name        = "app-build-trigger"
+  description = "Trigger para build da aplicação principal"
+  project     = var.project_id
+  location    = "global"
+  
+  github {
+    owner  = var.github_owner
+    name   = "projeto-sre-devops"
+    push {
+      branch = "main"
+    }
+  }
+  
+  filename = "cloudbuild.yaml"
+  
+  substitutions = {
+    _CLUSTER_NAME   = google_container_cluster.primary.name
+    _ZONE           = var.zone
+    _PROJECT_ID     = var.project_id
+    _REGION         = var.region
+    _DEVOPS_DOMAIN  = var.devops_domain
+    _SRE_DOMAIN     = var.sre_domain
+  }
+}
 
 # 2. Cloud Build Trigger para infraestrutura
 # COMENTADO - será habilitado após cluster estar ativo
@@ -53,7 +54,7 @@
 #     _PROJECT_ID   = var.project_id
 #   }
 #   
-#   depends_on = [google_container_cluster.trigger]
+#   depends_on = [google_container_cluster.primary]
 # }
 
 # 3. Cloud Build Trigger para monitoramento
