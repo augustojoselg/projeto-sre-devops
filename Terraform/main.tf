@@ -84,7 +84,15 @@ locals {
 }
 
 # Cluster GKE com configurações otimizadas
+# Verificar se o cluster já existe
+data "google_container_cluster" "existing_cluster" {
+  name     = "${var.project_id}-cluster"
+  location = var.region
+}
+
+# Fallback para criar cluster se não existir
 resource "google_container_cluster" "primary" {
+  count    = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? 0 : 1
   name     = "${var.project_id}-cluster"
   location = var.region
   project  = var.project_id
@@ -257,8 +265,14 @@ resource "google_project_iam_member" "gke_node_worker" {
 }
 
 # 6. Firewall para o cluster
+# Verificar se o firewall master já existe
+data "google_compute_firewall" "existing_gke_master" {
+  name = "gke-master-${var.project_id}"
+}
+
 # Fallback para criar firewall master se não existir
 resource "google_compute_firewall" "gke_master" {
+  count   = data.google_compute_firewall.existing_gke_master.name == "gke-master-${var.project_id}" ? 0 : 1
   name    = "gke-master-${var.project_id}"
   network = local.vpc_id
 
@@ -276,8 +290,14 @@ resource "google_compute_firewall" "gke_master" {
   }
 }
 
+# Verificar se o firewall nodes já existe
+data "google_compute_firewall" "existing_gke_nodes" {
+  name = "gke-nodes-${var.project_id}"
+}
+
 # Fallback para criar firewall nodes se não existir
 resource "google_compute_firewall" "gke_nodes" {
+  count   = data.google_compute_firewall.existing_gke_nodes.name == "gke-nodes-${var.project_id}" ? 0 : 1
   name    = "gke-nodes-${var.project_id}"
   network = local.vpc_id
 
@@ -301,8 +321,15 @@ resource "google_compute_firewall" "gke_nodes" {
 }
 
 # 7. Cloud NAT para nós privados
+# Verificar se o router já existe
+data "google_compute_router" "existing_router" {
+  name   = "${var.project_id}-router"
+  region = var.region
+}
+
 # Fallback para criar router se não existir
 resource "google_compute_router" "router" {
+  count   = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? 0 : 1
   name    = "${var.project_id}-router"
   region  = var.region
   network = local.vpc_id
@@ -313,10 +340,18 @@ resource "google_compute_router" "router" {
   }
 }
 
+# Verificar se o NAT já existe
+data "google_compute_router_nat" "existing_nat" {
+  name   = "${var.project_id}-nat"
+  router = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
+  region = var.region
+}
+
 # Fallback para criar NAT se não existir
 resource "google_compute_router_nat" "nat" {
+  count                              = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
   name                               = "${var.project_id}-nat"
-  router                             = google_compute_router.router.name
+  router                             = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
@@ -368,9 +403,15 @@ resource "google_compute_router_nat" "nat" {
 
 
 # 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
+# Verificar se a Security Policy já existe
+data "google_compute_security_policy" "existing_security_policy" {
+  name = "security-policy"
+}
+
 # Fallback para criar Security Policy se não existir
 resource "google_compute_security_policy" "security_policy" {
-  name = "security-policy"
+  count = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? 0 : 1
+  name  = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -437,14 +478,21 @@ resource "google_compute_security_policy" "security_policy" {
   }
 }
 
-# Usar Security Policy criada
+# Usar Security Policy existente ou criada
 locals {
-  security_policy_id = google_compute_security_policy.security_policy.id
+  security_policy_id = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? data.google_compute_security_policy.existing_security_policy.id : google_compute_security_policy.security_policy[0].id
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
+# Verificar se o Key Ring já existe
+data "google_kms_key_ring" "existing_keyring" {
+  name     = "gke-keyring"
+  location = var.region
+}
+
 # Fallback para criar Key Ring se não existir
 resource "google_kms_key_ring" "keyring" {
+  count    = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
 
@@ -454,10 +502,17 @@ resource "google_kms_key_ring" "keyring" {
   }
 }
 
+# Verificar se o Crypto Key já existe
+data "google_kms_crypto_key" "existing_key" {
+  name     = "gke-key"
+  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
+}
+
 # Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
+  count    = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
   name     = "gke-key"
-  key_ring = google_kms_key_ring.keyring.id
+  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
 
   lifecycle {
     prevent_destroy       = true
@@ -465,9 +520,9 @@ resource "google_kms_crypto_key" "key" {
   }
 }
 
-# Usar Crypto Key criado
+# Usar Crypto Key existente ou criado
 locals {
-  crypto_key_id = google_kms_crypto_key.key.id
+  crypto_key_id = data.google_kms_crypto_key.existing_key.name == "gke-key" ? data.google_kms_crypto_key.existing_key.id : google_kms_crypto_key.key[0].id
 }
 
 # 16. IAM para Cloud KMS
@@ -730,9 +785,15 @@ resource "kubernetes_ingress_v1" "whoami_app" {
 # }
 
 # 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
+# Verificar se o Health Check já existe
+data "google_compute_health_check" "existing_health_check" {
+  name = "health-check"
+}
+
 # Fallback para criar Health Check se não existir
 resource "google_compute_health_check" "default" {
-  name = "health-check"
+  count = data.google_compute_health_check.existing_health_check.name == "health-check" ? 0 : 1
+  name  = "health-check"
 
   http_health_check {
     port = 8000
@@ -744,9 +805,15 @@ resource "google_compute_health_check" "default" {
   }
 }
 
+# Verificar se o SSL Certificate já existe
+data "google_compute_managed_ssl_certificate" "existing_ssl_cert" {
+  name = "managed-ssl-certificate"
+}
+
 # Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
-  name = "managed-ssl-certificate"
+  count = data.google_compute_managed_ssl_certificate.existing_ssl_cert.name == "managed-ssl-certificate" ? 0 : 1
+  name  = "managed-ssl-certificate"
 
   managed {
     domains = [var.domain_name]
@@ -758,8 +825,14 @@ resource "google_compute_managed_ssl_certificate" "default" {
   }
 }
 
+# Verificar se o DNS Zone já existe
+data "google_dns_managed_zone" "existing_dns_zone" {
+  name = "default-zone"
+}
+
 # Fallback para criar DNS Zone se não existir
 resource "google_dns_managed_zone" "default" {
+  count       = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? 0 : 1
   name        = "default-zone"
   dns_name    = "${var.domain_name}."
   description = "DNS zone for the project"
@@ -768,7 +841,7 @@ resource "google_dns_managed_zone" "default" {
 # 26. DNS para o domínio
 resource "google_dns_record_set" "default" {
   name         = "${var.domain_name}."
-  managed_zone = google_dns_managed_zone.default.name
+  managed_zone = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? data.google_dns_managed_zone.existing_dns_zone.name : google_dns_managed_zone.default[0].name
   type         = "A"
   ttl          = 300
 
