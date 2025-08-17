@@ -1,0 +1,219 @@
+# Exemplo de arquivo de variáveis para o projeto SRE
+# Copie este arquivo para variables.tf e configure com seus valores
+
+# Configurações do Projeto GCP
+variable "project_id" {
+  description = "ID do projeto GCP"
+  type        = string
+  # Exemplo: "meu-projeto-123456"
+}
+
+variable "region" {
+  description = "Região GCP para o cluster"
+  type        = string
+  default     = "us-west1"
+  # Opções: us-west1, us-east1, europe-west1, asia-southeast1
+}
+
+variable "zone" {
+  description = "Zona GCP para recursos zonais"
+  type        = string
+  default     = "us-west1-a"
+  # Exemplo: us-west1-a, us-west1-b, us-west1-c
+}
+
+# Configurações de Rede
+variable "subnet_cidr" {
+  description = "CIDR da subnet principal"
+  type        = string
+  default     = "10.0.0.0/24"
+  # Exemplo: 10.0.0.0/24, 172.16.0.0/24
+}
+
+variable "pods_cidr" {
+  description = "CIDR para pods do cluster"
+  type        = string
+  default     = "10.1.0.0/16"
+  # Exemplo: 10.1.0.0/16, 172.17.0.0/16
+}
+
+variable "services_cidr" {
+  description = "CIDR para serviços do cluster"
+  type        = string
+  default     = "10.2.0.0/16"
+  # Exemplo: 10.2.0.0/16, 172.18.0.0/16
+}
+
+# Configurações do Cluster GKE
+variable "node_locations" {
+  description = "Zonas para os nós do cluster"
+  type        = list(string)
+  default     = ["us-west1-a", "us-west1-b"]
+  # Exemplo: ["us-west1-a", "us-west1-b", "us-west1-c"]
+}
+
+variable "node_count" {
+  description = "Número inicial de nós"
+  type        = number
+  default     = 2
+  # Mínimo: 2 para alta disponibilidade
+}
+
+variable "min_node_count" {
+  description = "Número mínimo de nós (auto-scaling)"
+  type        = number
+  default     = 2
+  # Mínimo: 2 para alta disponibilidade
+}
+
+variable "max_node_count" {
+  description = "Número máximo de nós (auto-scaling)"
+  type        = number
+  default     = 5
+  # Recomendado: 5 para balancear custo e performance
+}
+
+variable "machine_type" {
+  description = "Tipo de máquina para os nós"
+  type        = string
+  default     = "e2-standard-2"
+  # Opções: e2-standard-2, e2-standard-4, n2-standard-2
+}
+
+variable "disk_size_gb" {
+  description = "Tamanho do disco dos nós (GB)"
+  type        = number
+  default     = 50
+  # Mínimo: 50GB, Recomendado: 100GB para produção
+}
+
+# Configurações de Segurança
+variable "allowed_ip_ranges" {
+  description = "IPs permitidos para acesso ao cluster"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+  # ⚠️ ATENÇÃO: Em produção, restrinja para IPs específicos
+  # Exemplo: ["192.168.1.0/24", "10.0.0.0/8"]
+}
+
+# Configurações de Monitoramento
+variable "alert_email" {
+  description = "Email para receber alertas"
+  type        = string
+  # Exemplo: "admin@empresa.com"
+}
+
+# Configurações de Domínio
+variable "domain_name" {
+  description = "Nome do domínio para a aplicação"
+  type        = string
+  # Exemplo: "app.empresa.com"
+}
+
+# Configurações de CI/CD
+variable "github_owner" {
+  description = "Proprietário do repositório GitHub"
+  type        = string
+  # Exemplo: "empresa"
+}
+
+variable "github_repo" {
+  description = "Nome do repositório GitHub"
+  type        = string
+  # Exemplo: "projeto-sre"
+}
+
+variable "discord_webhook_url" {
+  description = "URL do webhook do Discord para notificações"
+  type        = string
+  default     = ""
+  # Exemplo: "https://discord.com/api/webhooks/..."
+}
+
+variable "email_smtp_host" {
+  description = "Host SMTP para envio de emails"
+  type        = string
+  default     = ""
+  # Exemplo: "smtp.gmail.com"
+}
+
+variable "email_smtp_port" {
+  description = "Porta SMTP para envio de emails"
+  type        = number
+  default     = 587
+  # Exemplo: 587 (TLS), 465 (SSL)
+}
+
+variable "email_username" {
+  description = "Usuário para autenticação SMTP"
+  type        = string
+  default     = ""
+  # Exemplo: "admin@empresa.com"
+}
+
+variable "email_password" {
+  description = "Senha para autenticação SMTP"
+  type        = string
+  default     = ""
+  sensitive   = true
+  # ⚠️ ATENÇÃO: Use variáveis de ambiente ou secrets
+}
+
+# Configurações de Backup e Storage
+variable "backup_retention_days" {
+  description = "Dias de retenção para backups"
+  type        = number
+  default     = 30
+  # Recomendado: 30-90 dias
+}
+
+variable "monitoring_retention_days" {
+  description = "Dias de retenção para métricas"
+  type        = number
+  default     = 90
+  # Recomendado: 90-365 dias
+
+# Configurações de Performance
+variable "prometheus_storage_gb" {
+  description = "Storage para Prometheus (GB)"
+  type        = number
+  default     = 10
+  # Recomendado: 10-50GB dependendo do volume de métricas
+}
+
+variable "grafana_storage_gb" {
+  description = "Storage para Grafana (GB)"
+  type        = number
+  default     = 5
+  # Recomendado: 5-20GB para dashboards e configurações
+}
+
+# Configurações de Testes de Estresse
+variable "stress_test_interval_hours" {
+  description = "Intervalo entre testes de estresse (horas)"
+  type        = number
+  default     = 6
+  # Exemplo: 6 (4x por dia), 12 (2x por dia), 24 (1x por dia)
+}
+
+variable "stress_test_duration_minutes" {
+  description = "Duração dos testes de estresse (minutos)"
+  type        = number
+  default     = 12
+  # Exemplo: 12 (2min ramp + 5min load + 2min peak + 3min down)
+}
+
+# Configurações de Custos
+variable "enable_spot_instances" {
+  description = "Habilitar uso de spot instances para economia"
+  type        = bool
+  default     = false
+  # ⚠️ ATENÇÃO: Spot instances podem ser interrompidas
+}
+
+variable "cost_alert_threshold_usd" {
+  description = "Limite de custo para alertas (USD)"
+  type        = number
+  default     = 100
+  # Exemplo: 100, 500, 1000
+}

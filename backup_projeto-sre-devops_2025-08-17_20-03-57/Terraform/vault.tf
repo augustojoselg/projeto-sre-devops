@@ -13,16 +13,9 @@ resource "helm_release" "vault" {
   namespace  = kubernetes_namespace.vault.metadata[0].name
   version    = "0.27.0" # Versão estável e compatível
 
-  # Renderiza o arquivo de valores do Vault como um template
+  # Configurações via arquivo de valores para manter a organização
   values = [
-    templatefile("${path.module}/vault-values.yaml.tpl", {
-      gcp_project_id       = var.project_id
-      gcp_region           = var.region
-      vault_storage_bucket = google_storage_bucket.vault_storage.name
-      kms_key_ring         = google_kms_key_ring.keyring.name
-      kms_crypto_key       = google_kms_crypto_key.vault_unseal.name
-      vault_gcp_sa_email   = google_service_account.vault.email
-    })
+    "${file("${path.module}/vault-values.yaml")}"
   ]
 
   depends_on = [

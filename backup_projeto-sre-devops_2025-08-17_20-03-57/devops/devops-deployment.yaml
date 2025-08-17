@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-whoami
+  namespace: devops
+  labels:
+    app: devops-whoami
+spec:
+  replicas: 3 # Define o número de réplicas para alta disponibilidade.
+  selector:
+    matchLabels:
+      app: devops-whoami
+  template:
+    metadata:
+      labels:
+        app: devops-whoami
+    spec:
+      containers:
+      - name: whoami
+        image: jwilder/whoami:latest # A imagem Docker da sua aplicação.
+        ports:
+        - containerPort: 8000 # A porta em que a aplicação escuta.

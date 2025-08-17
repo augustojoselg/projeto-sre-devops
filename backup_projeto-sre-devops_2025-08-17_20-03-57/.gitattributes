@@ -1,0 +1,89 @@
+# =============================================================================
+# GITATTRIBUTES PARA PROJETO SRE-DEVOPS
+# =============================================================================
+
+# =============================================================================
+# CONFIGURAÇÃO DE LINE ENDINGS
+# =============================================================================
+# Arquivos de texto que devem usar LF (Linux/Mac)
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.json text eol=lf
+*.hcl text eol=lf
+
+# Arquivos de configuração
+*.conf text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+
+# =============================================================================
+# ARQUIVOS BINÁRIOS
+# =============================================================================
+# Arquivos que devem ser tratados como binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# =============================================================================
+# ARQUIVOS DE DOCUMENTAÇÃO
+# =============================================================================
+# Markdown e documentação
+*.md text eol=lf diff=markdown
+*.txt text eol=lf
+
+# =============================================================================
+# ARQUIVOS DE CONFIGURAÇÃO
+# =============================================================================
+# Terraform
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+
+# Kubernetes
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.bat text eol=crlf
+
+# =============================================================================
+# ARQUIVOS DE LINGUAGEM
+# =============================================================================
+# Python
+*.py text eol=lf
+*.pyc binary
+
+# JavaScript/Node.js
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+
+# =============================================================================
+# ARQUIVOS DE CONFIGURAÇÃO DE IDEs
+# =============================================================================
+# VS Code
+.vscode/settings.json text eol=lf
+.vscode/launch.json text eol=lf
+.vscode/tasks.json text eol=lf
+
+# =============================================================================
+# ARQUIVOS DE LOCK
+# =============================================================================
+# Manter line endings originais
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+.terraform.lock.hcl text eol=lf

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-whoami-ingress
+  namespace: devops
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" 
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - devops.tisl.com.br
+    secretName: devops-whoami-tls-cert
+  rules:
+  - host: devops.tisl.com.br
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: devops-whoami-service
+            port:
+              number: 80
