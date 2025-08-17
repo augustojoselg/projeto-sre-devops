@@ -35,7 +35,7 @@ module "service_account" {
 # 1. VPC e Subnets (REUTILIZÁVEL - só cria se não existir)
 # Fallback para criar VPC se não existir
 resource "google_compute_network" "vpc" {
-  count                   = 1  # Sempre criar
+  count                   = 1 # Sempre criar
   name                    = "${var.project_id}-vpc"
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
