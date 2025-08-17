@@ -61,11 +61,11 @@ data "google_compute_subnetwork" "existing_subnet" {
 
 # Fallback para criar subnet se não existir
 resource "google_compute_subnetwork" "subnet" {
-  count          = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? 0 : 1
-  name           = "${var.project_id}-subnet"
-  ip_cidr_range  = var.subnet_cidr
-  network        = local.vpc_id
-  region         = var.region
+  count         = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? 0 : 1
+  name          = "${var.project_id}-subnet"
+  ip_cidr_range = var.subnet_cidr
+  network       = local.vpc_id
+  region        = var.region
 
   # Habilitar logs de fluxo para monitoramento
   log_config {
@@ -79,7 +79,7 @@ resource "google_compute_subnetwork" "subnet" {
 
 # Usar VPC existente ou criada
 locals {
-  vpc_id = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
+  vpc_id    = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
   subnet_id = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.id : google_compute_subnetwork.subnet[0].id
 }
 
@@ -326,7 +326,7 @@ data "google_compute_router_nat" "existing_nat" {
 
 # Fallback para criar NAT se não existir
 resource "google_compute_router_nat" "nat" {
-  count                               = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
+  count                              = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
   name                               = "${var.project_id}-nat"
   router                             = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
   region                             = var.region
@@ -463,8 +463,8 @@ resource "google_kms_key_ring" "keyring" {
 
 # Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  name      = "gke-key"
-  key_ring  = google_kms_key_ring.keyring.id
+  name     = "gke-key"
+  key_ring = google_kms_key_ring.keyring.id
 
   lifecycle {
     prevent_destroy       = true
