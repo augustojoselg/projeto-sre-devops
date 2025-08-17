@@ -22,7 +22,7 @@ output "vpc_name" {
 
 output "subnet_name" {
   description = "Nome da subnet"
-  value       = google_compute_subnetwork.subnet.name
+  value       = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.name : google_compute_subnetwork.subnet[0].name
 }
 
 output "load_balancer_ip" {

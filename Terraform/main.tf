@@ -257,14 +257,8 @@ resource "google_project_iam_member" "gke_node_worker" {
 }
 
 # 6. Firewall para o cluster
-# Verificar se o firewall master já existe
-data "google_compute_firewall" "existing_gke_master" {
-  name = "gke-master-${var.project_id}"
-}
-
 # Fallback para criar firewall master se não existir
 resource "google_compute_firewall" "gke_master" {
-  count   = data.google_compute_firewall.existing_gke_master.name == "gke-master-${var.project_id}" ? 0 : 1
   name    = "gke-master-${var.project_id}"
   network = local.vpc_id
 
@@ -275,16 +269,15 @@ resource "google_compute_firewall" "gke_master" {
 
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-master"]
-}
 
-# Verificar se o firewall nodes já existe
-data "google_compute_firewall" "existing_gke_nodes" {
-  name = "gke-nodes-${var.project_id}"
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Fallback para criar firewall nodes se não existir
 resource "google_compute_firewall" "gke_nodes" {
-  count   = data.google_compute_firewall.existing_gke_nodes.name == "gke-nodes-${var.project_id}" ? 0 : 1
   name    = "gke-nodes-${var.project_id}"
   network = local.vpc_id
 
@@ -300,38 +293,38 @@ resource "google_compute_firewall" "gke_nodes" {
 
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-node"]
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # 7. Cloud NAT para nós privados
-# Verificar se o router já existe
-data "google_compute_router" "existing_router" {
-  name   = "${var.project_id}-router"
-  region = var.region
-}
-
 # Fallback para criar router se não existir
 resource "google_compute_router" "router" {
-  count   = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? 0 : 1
   name    = "${var.project_id}-router"
   region  = var.region
   network = local.vpc_id
-}
 
-# Verificar se o NAT já existe
-data "google_compute_router_nat" "existing_nat" {
-  name   = "${var.project_id}-nat"
-  router = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
-  region = var.region
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Fallback para criar NAT se não existir
 resource "google_compute_router_nat" "nat" {
-  count                              = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
   name                               = "${var.project_id}-nat"
-  router                             = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
+  router                             = google_compute_router.router.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 
