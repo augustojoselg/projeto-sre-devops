@@ -442,9 +442,9 @@ data "google_kms_crypto_key" "existing_key" {
 
 # Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  count     = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
-  name      = "gke-key"
-  key_ring  = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
+  count    = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
+  name     = "gke-key"
+  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
 
   lifecycle {
     prevent_destroy       = true
