@@ -39,6 +39,12 @@ jobs:
         service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
 
+    - name: Configure gcloud auth
+      run: |
+        echo ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }} > /tmp/gcp-key.json
+        gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+        gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
+
     - name: Configure kubectl
       run: |
         gcloud container clusters get-credentials ${{ secrets.GOOGLE_CLUSTER_NAME }} \
