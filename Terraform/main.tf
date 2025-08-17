@@ -269,14 +269,8 @@ resource "google_project_iam_member" "gke_node_worker" {
 }
 
 # 6. Firewall para o cluster
-# Verificar se o firewall master já existe
-data "google_compute_firewall" "existing_gke_master" {
-  name = "gke-master-${var.project_id}"
-}
-
 # Fallback para criar firewall master se não existir
 resource "google_compute_firewall" "gke_master" {
-  count   = data.google_compute_firewall.existing_gke_master.name == "gke-master-${var.project_id}" ? 0 : 1
   name    = "gke-master-${var.project_id}"
   network = local.vpc_id
 
@@ -294,14 +288,8 @@ resource "google_compute_firewall" "gke_master" {
   }
 }
 
-# Verificar se o firewall nodes já existe
-data "google_compute_firewall" "existing_gke_nodes" {
-  name = "gke-nodes-${var.project_id}"
-}
-
 # Fallback para criar firewall nodes se não existir
 resource "google_compute_firewall" "gke_nodes" {
-  count   = data.google_compute_firewall.existing_gke_nodes.name == "gke-nodes-${var.project_id}" ? 0 : 1
   name    = "gke-nodes-${var.project_id}"
   network = local.vpc_id
 
@@ -327,8 +315,9 @@ resource "google_compute_firewall" "gke_nodes" {
 # 7. Cloud NAT para nós privados
 # Verificar se o router já existe
 data "google_compute_router" "existing_router" {
-  name   = "${var.project_id}-router"
-  region = var.region
+  name    = "${var.project_id}-router"
+  region  = var.region
+  network = local.vpc_id
 }
 
 # Fallback para criar router se não existir
@@ -407,15 +396,8 @@ resource "google_compute_router_nat" "nat" {
 
 
 # 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
-# Verificar se a Security Policy já existe
-data "google_compute_security_policy" "existing_security_policy" {
-  name = "security-policy"
-}
-
-# Fallback para criar Security Policy se não existir
 resource "google_compute_security_policy" "security_policy" {
-  count = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? 0 : 1
-  name  = "security-policy"
+  name = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -482,9 +464,9 @@ resource "google_compute_security_policy" "security_policy" {
   }
 }
 
-# Usar Security Policy existente ou criada
+# Usar Security Policy criada
 locals {
-  security_policy_id = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? data.google_compute_security_policy.existing_security_policy.id : google_compute_security_policy.security_policy[0].id
+  security_policy_id = google_compute_security_policy.security_policy.id
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
@@ -819,8 +801,7 @@ data "google_compute_managed_ssl_certificate" "existing_ssl_cert" {
 
 # Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
-  count = data.google_compute_managed_ssl_certificate.existing_ssl_cert.name == "managed-ssl-certificate" ? 0 : 1
-  name  = "managed-ssl-certificate"
+  name = "managed-ssl-certificate"
 
   managed {
     domains = [var.domain_name]
