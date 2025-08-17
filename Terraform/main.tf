@@ -435,7 +435,7 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
 #   }
 # }
 
-# 23. Cloud Run para aplicação de exemplo
+# 23. Cloud Run para aplicação de exemplo (REUTILIZÁVEL - só cria se não existir)
 resource "google_cloud_run_service" "whoami_app" {
   name     = "whoami-app"
   location = var.region
@@ -470,32 +470,72 @@ resource "google_cloud_run_service" "whoami_app" {
     percent         = 100
     latest_revision = true
   }
+
+  # Tornar reutilizável - só recria se houver mudanças
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      # Ignora mudanças que não afetam a funcionalidade
+      template[0].metadata[0].annotations,
+      template[0].metadata[0].labels
+    ]
+  }
+
+  # Adicionar tags para identificação
+  metadata {
+    labels = {
+      app         = "whoami"
+      environment = "production"
+      managed_by  = "terraform"
+      version     = "1.0.0"
+    }
+  }
 }
 
-# 24. IAM para Cloud Run
+# 24. IAM para Cloud Run (REUTILIZÁVEL)
 resource "google_cloud_run_service_iam_member" "public_access" {
   location = google_cloud_run_service.whoami_app.location
   service  = google_cloud_run_service.whoami_app.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-# 25. Load Balancer para alta disponibilidade
+# 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
 resource "google_compute_global_forwarding_rule" "default" {
   name       = "global-forwarding-rule"
   target     = google_compute_target_https_proxy.default.id
   port_range = "443"
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_target_https_proxy" "default" {
   name             = "target-https-proxy"
   url_map          = google_compute_url_map.default.id
   ssl_certificates = [google_compute_managed_ssl_certificate.default.id]
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_url_map" "default" {
   name            = "url-map"
   default_service = google_compute_backend_service.default.id
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_backend_service" "default" {
@@ -509,6 +549,11 @@ resource "google_compute_backend_service" "default" {
   }
 
   health_checks = [google_compute_health_check.default.id]
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_instance_group_manager" "default" {
@@ -526,6 +571,11 @@ resource "google_compute_instance_group_manager" "default" {
   named_port {
     name = "http"
     port = 8000
+  }
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -553,6 +603,7 @@ resource "google_compute_instance_template" "default" {
               docker run -d -p 8000:8000 jwilder/whoami:latest
               EOF
 
+  # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
   }
@@ -564,6 +615,11 @@ resource "google_compute_health_check" "default" {
   http_health_check {
     port = 8000
   }
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_managed_ssl_certificate" "default" {
@@ -571,6 +627,11 @@ resource "google_compute_managed_ssl_certificate" "default" {
 
   managed {
     domains = [var.domain_name]
+  }
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
