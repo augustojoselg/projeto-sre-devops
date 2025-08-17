@@ -1,0 +1,53 @@
+# =============================================================================
+# GITIGNORE ESPECÍFICO PARA DIRETÓRIO TERRAFORM
+# =============================================================================
+
+# Arquivos de estado do Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfstate.local
+
+# Diretório de inicialização
+.terraform/
+.terraform.lock.hcl
+
+# Arquivos de variáveis com valores sensíveis
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+terraform.tfvars.*
+!*.tfvars.example
+
+# Arquivos de plano
+*.tfplan
+*.tfplan.json
+plan.out
+
+# Logs
+*.log
+terraform.log
+
+# Arquivos de certificados temporários
+letsencrypt-*.yaml
+cert-manager-*.yaml
+
+# Arquivos de configuração local
+kubeconfig
+.kubeconfig
+
+# Arquivos de credenciais
+*.json
+*-key.json
+*-sa-key.json
+service-account-*.json
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Arquivos temporários
+*.tmp
+*.temp
+temp/
+tmp/

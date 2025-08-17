@@ -9,10 +9,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - devops-bry.tisl.com.br
+    - devops.tisl.com.br
     secretName: devops-whoami-tls-cert
   rules:
-  - host: devops-bry.tisl.com.br
+  - host: devops.tisl.com.br
     http:
       paths:
       - path: /

@@ -1,19 +1,19 @@
 variable "project_id" {
   description = "ID do projeto GCP"
   type        = string
-  default     = "mythical-maxim-399820"
+  default     = "augustosredevops"
 }
 
 variable "region" {
   description = "Região GCP"
   type        = string
-  default     = "us-central1"
+  default     = "us-west1"
 }
 
 variable "zone" {
   description = "Zona GCP"
   type        = string
-  default     = "us-central1-a"
+  default     = "us-west1-a"
 }
 
 variable "subnet_cidr" {
@@ -37,25 +37,25 @@ variable "services_cidr" {
 variable "node_locations" {
   description = "Localizações dos nós para alta disponibilidade"
   type        = list(string)
-  default     = ["us-central1-a", "us-central1-b", "us-central1-c"]
+  default     = ["us-west1-a", "us-west1-b"]
 }
 
 variable "node_count" {
   description = "Número inicial de nós"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "min_node_count" {
   description = "Número mínimo de nós"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "max_node_count" {
   description = "Número máximo de nós"
   type        = number
-  default     = 5
+  default     = 2
 }
 
 variable "machine_type" {
@@ -67,13 +67,13 @@ variable "machine_type" {
 variable "disk_size_gb" {
   description = "Tamanho do disco em GB"
   type        = number
-  default     = 100
+  default     = 50
 }
 
 variable "allowed_ip_ranges" {
   description = "IPs permitidos para acesso"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 }
 
 variable "alert_email" {
@@ -88,10 +88,22 @@ variable "domain_name" {
   default     = "devops.tisl.com.br"
 }
 
+variable "devops_domain" {
+  description = "Domínio da aplicação DevOps"
+  type        = string
+  default     = "devops.tisl.com.br"
+}
+
+variable "sre_domain" {
+  description = "Domínio da aplicação SRE"
+  type        = string
+  default     = "sre.tisl.com.br"
+}
+
 variable "github_owner" {
   description = "Proprietário do repositório GitHub"
   type        = string
-  
+  default     = "augustojoselg"
 }
 
 variable "github_repo" {
@@ -115,13 +127,14 @@ variable "email_smtp_port" {
 variable "email_username" {
   description = "Usuário para autenticação SMTP"
   type        = string
-  default     = "tisl@sysmac-nf.com.br" # Pegar a senha do email e remover daqui!
+  default     = "" # Configurar via variável de ambiente
 }
 
 variable "email_password" {
   description = "Senha para autenticação SMTP"
   type        = string
-  default     = "tisl@sysmac-nf.com.br" # Pegar a senha do email e remover daqui!
+  default     = "" # Configurar via variável de ambiente
+  sensitive   = true
 }
 
 variable "discord_webhook_url" {

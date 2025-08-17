@@ -11,15 +11,15 @@ variable "project_id" {
 variable "region" {
   description = "Região GCP para o cluster"
   type        = string
-  default     = "us-central1"
-  # Opções: us-central1, us-east1, europe-west1, asia-southeast1
+  default     = "us-west1"
+  # Opções: us-west1, us-east1, europe-west1, asia-southeast1
 }
 
 variable "zone" {
   description = "Zona GCP para recursos zonais"
   type        = string
-  default     = "us-central1-a"
-  # Exemplo: us-central1-a, us-central1-b, us-central1-c
+  default     = "us-west1-a"
+  # Exemplo: us-west1-a, us-west1-b, us-west1-c
 }
 
 # Configurações de Rede
@@ -48,8 +48,8 @@ variable "services_cidr" {
 variable "node_locations" {
   description = "Zonas para os nós do cluster"
   type        = list(string)
-  default     = ["us-central1-a", "us-central1-b"]
-  # Exemplo: ["us-central1-a", "us-central1-b", "us-central1-c"]
+  default     = ["us-west1-a", "us-west1-b"]
+  # Exemplo: ["us-west1-a", "us-west1-b", "us-west1-c"]
 }
 
 variable "node_count" {

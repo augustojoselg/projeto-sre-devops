@@ -112,7 +112,7 @@ Este projeto implementa uma solução completa de **Site Reliability Engineering
 ## 📁 **Estrutura do Projeto**
 
 ```
-bry_tecnologia/
+projeto-sre-devops/
 ├── Terraform/                          # Configurações Terraform
 │   ├── main.tf                        # Infraestrutura principal
 │   ├── helm-monitoring.tf             # Stack de monitoramento
@@ -140,8 +140,8 @@ bry_tecnologia/
 ### **Configuração Inicial**
 1. **Clone o repositório**:
    ```bash
-   git clone <repository-url>
-   cd bry_tecnologia
+   git clone https://github.com/augustojoselg/projeto-sre-devops.git
+   cd projeto-sre-devops
    ```
 
 2. **Configure as variáveis**:
@@ -183,8 +183,8 @@ bry_tecnologia/
 
 ### **Monitoramento**
 - **Grafana**: `http://<grafana-service-ip>:3000`
-  - Usuário: `admin`
-  - Senha: `admin123`
+  - Usuário: `seu usuario`
+  - Senha: `sua senha`
 - **Prometheus**: `http://<prometheus-service-ip>:9090`
 - **AlertManager**: `http://<alertmanager-service-ip>:9093`
 
@@ -194,7 +194,7 @@ bry_tecnologia/
 
 ### **Secrets Management**
 - **Vault**: `https://vault.<domain-name>`
-  - Token: `vault-dev-token-12345`
+  - Token: `seu token`
 
 ### **Testes de Estresse**
 - **Resultados**: `https://stress-test.<domain-name>`

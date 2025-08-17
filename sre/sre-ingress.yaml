@@ -9,10 +9,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - sre-bry.tisl.com.br
+    - sre.tisl.com.br
     secretName: sre-whoami-tls-cert
   rules:
-  - host: sre-bry.tisl.com.br
+  - host: sre.tisl.com.br
     http:
       paths:
       - path: /

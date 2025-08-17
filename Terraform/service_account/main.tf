@@ -20,8 +20,16 @@ locals {
     "roles/container.admin",
     "roles/cloudsql.admin",
     "roles/iam.serviceAccountAdmin",    # opcional
-    "roles/iam.serviceAccountKeyAdmin"  # opcional
-    "roles/iam.serviceAccountUser"      # opcional
+    "roles/iam.serviceAccountKeyAdmin",  # opcional
+    "roles/iam.serviceAccountUser",      # opcional
+    # Permissões específicas para APIs
+    "roles/cloudbuild.builds.builder",   # Cloud Build
+    "roles/run.developer",               # Cloud Run
+    "roles/cloudkms.cryptoKeyEncrypterDecrypter", # Cloud KMS
+    "roles/dns.admin",                   # Cloud DNS
+    "roles/monitoring.admin",            # Cloud Monitoring
+    "roles/logging.admin",               # Cloud Logging
+    "roles/resourcemanager.projectIamAdmin" # Resource Manager
   ]
 }
 

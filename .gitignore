@@ -1,5 +1,5 @@
 # =============================================================================
-# GITIGNORE PARA PROJETO BRY TECNOLOGIA - INFRAESTRUTURA TERRAFORM/KUBERNETES
+# GITIGNORE PARA PROJETO SRE-DEVOPS - INFRAESTRUTURA TERRAFORM/KUBERNETES
 # =============================================================================
 
 # =============================================================================
@@ -26,6 +26,7 @@ terraform.tfvars.*
 # Arquivos de plano
 *.tfplan
 *.tfplan.json
+plan.out
 
 # Logs do Terraform
 terraform.log
@@ -40,6 +41,7 @@ mythical-maxim-399820-8c8bbee5bd34.json
 *-key.json
 *-sa-key.json
 service-account-*.json
+service_account/*.json
 
 # Arquivos de credenciais
 gcloud/
@@ -194,3 +196,26 @@ yarn.lock
 # Arquivos de configuração local
 config.local.*
 settings.local.*
+
+# =============================================================================
+# ARQUIVOS ESPECÍFICOS DO PROJETO
+# =============================================================================
+# Arquivos de certificados temporários
+letsencrypt-*.yaml
+cert-manager-*.yaml
+
+# Arquivos de configuração local
+kubeconfig
+.kubeconfig
+
+# Arquivos de estado do Terraform (já incluído acima, mas reforçando)
+terraform.tfstate*
+.terraform/
+
+# Arquivos de plano
+plan.out
+*.tfplan
+
+# Logs e outputs
+*.log
+outputs/

@@ -13,10 +13,7 @@ output "cluster_location" {
   value       = google_container_cluster.primary.location
 }
 
-output "node_pool_name" {
-  description = "Nome do node pool"
-  value       = google_container_node_pool.primary_nodes.name
-}
+
 
 output "vpc_name" {
   description = "Nome da VPC"
@@ -38,17 +35,8 @@ output "domain_name" {
   value       = var.domain_name
 }
 
-output "backup_bucket" {
-  description = "Nome do bucket de backup"
-  value       = google_storage_bucket.backup_bucket.name
-}
 
-output "monitoring_dataset" {
-  description = "Dataset do BigQuery para métricas"
-  value       = google_bigquery_dataset.cluster_metrics.dataset_id
-}
 
-output "notification_topic" {
-  description = "Tópico do Pub/Sub para notificações"
-  value       = google_pubsub_topic.cluster_notifications.name
-}
+
+
+

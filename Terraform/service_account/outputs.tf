@@ -1,4 +1,4 @@
-output "service_account_email" {
+output "devops_email" {
   value = google_service_account.devops.email
 }
 
