@@ -511,7 +511,7 @@ resource "kubernetes_deployment" "whoami_app" {
           image = "jwilder/whoami:latest"
           name  = "whoami"
 
-          ports {
+          port {
             container_port = 8000
           }
 
