@@ -7,15 +7,15 @@
 # 1. Cloud Build Trigger para aplicação principal
 resource "google_cloudbuild_trigger" "app_trigger" {
   name        = "app-build-trigger"
-  description = "Trigger para build da aplicação principal"
+  description = "Trigger para build e deploy de aplicações"
   project     = var.project_id
-  location    = "global"
+  location    = "global" # Especificar a location global explicitamente
 
   github {
     owner = var.github_owner
-    name  = "projeto-sre-devops"
+    name  = var.github_repo
     push {
-      branch = "main"
+      branch = "^main$" # Usar expressão regular para o branch
     }
   }
 
@@ -28,6 +28,11 @@ resource "google_cloudbuild_trigger" "app_trigger" {
     _REGION        = var.region
     _DEVOPS_DOMAIN = var.devops_domain
     _SRE_DOMAIN    = var.sre_domain
+  }
+
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
   }
 }
 

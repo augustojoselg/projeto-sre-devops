@@ -2,15 +2,17 @@
 # Este arquivo configura o stack de monitoramento completo
 
 # 1. Namespace para monitoramento
-resource "kubernetes_namespace" "monitoring" {
+data "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
-    labels = {
-      name = "monitoring"
-    }
   }
+}
 
-  depends_on = [google_container_cluster.primary]
+resource "kubernetes_namespace" "monitoring" {
+  count = data.kubernetes_namespace.monitoring.metadata[0].name == "monitoring" ? 0 : 1
+  metadata {
+    name = "monitoring"
+  }
 }
 
 # 2. Helm Release para Prometheus Stack (Kube-Prometheus)
