@@ -27,7 +27,7 @@ data "google_client_config" "default" {}
 # Módulo para criar conta de serviço DevOps
 module "service_account" {
   source = "./service_account"
-  
+
   project_id = var.project_id
   region     = var.region
 }
@@ -37,7 +37,7 @@ resource "google_compute_network" "vpc" {
   name                    = "${var.project_id}-vpc"
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
-  
+
   depends_on = [google_project_service.compute]
 }
 
@@ -46,14 +46,14 @@ resource "google_compute_subnetwork" "subnet" {
   ip_cidr_range = var.subnet_cidr
   network       = google_compute_network.vpc.id
   region        = var.region
-  
+
   # Habilitar logs de fluxo para monitoramento
   log_config {
     aggregation_interval = "INTERVAL_5_SEC"
-    flow_sampling       = 0.5
-    metadata            = "INCLUDE_ALL_METADATA"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
   }
-  
+
   depends_on = [google_project_service.compute]
 }
 
@@ -100,7 +100,7 @@ resource "google_container_cluster" "primary" {
       disabled = false
     }
     network_policy_config {
-      disabled = true  # Desabilitado para compatibilidade
+      disabled = true # Desabilitado para compatibilidade
     }
   }
 
@@ -202,12 +202,12 @@ resource "google_container_cluster" "primary" {
     google_compute_network.vpc,
     google_compute_subnetwork.subnet,
     google_project_service.container,
-         data.google_service_account.gke_node
+    data.google_service_account.gke_node
   ]
 
   # Lifecycle para evitar destruição acidental
   lifecycle {
-    prevent_destroy = false  # Permitir destruição para mudança de região
+    prevent_destroy = false # Permitir destruição para mudança de região
     ignore_changes = [
       node_pool[0].node_config[0].resource_labels,
       node_pool[0].node_config[0].kubelet_config
@@ -234,12 +234,12 @@ resource "google_project_iam_member" "gke_node_worker" {
 resource "google_compute_firewall" "gke_master" {
   name    = "gke-master-${var.project_id}"
   network = google_compute_network.vpc.name
-  
+
   allow {
     protocol = "tcp"
     ports    = ["443", "6443"]
   }
-  
+
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-master"]
 }
@@ -247,17 +247,17 @@ resource "google_compute_firewall" "gke_master" {
 resource "google_compute_firewall" "gke_nodes" {
   name    = "gke-nodes-${var.project_id}"
   network = google_compute_network.vpc.name
-  
+
   allow {
     protocol = "tcp"
     ports    = ["30000-32767"]
   }
-  
+
   allow {
     protocol = "udp"
     ports    = ["30000-32767"]
   }
-  
+
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-node"]
 }
@@ -271,9 +271,9 @@ resource "google_compute_router" "router" {
 
 resource "google_compute_router_nat" "nat" {
   name                               = "${var.project_id}-nat"
-  router                            = google_compute_router.router.name
-  region                            = var.region
-  nat_ip_allocate_option            = "AUTO_ONLY"
+  router                             = google_compute_router.router.name
+  region                             = var.region
+  nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
@@ -320,7 +320,7 @@ resource "google_compute_router_nat" "nat" {
 # 14. Cloud Armor para segurança adicional
 resource "google_compute_security_policy" "security_policy" {
   name = "security-policy"
-  
+
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
     action   = "allow"
@@ -333,7 +333,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Default rule, higher priority overrides"
   }
-  
+
   rule {
     action   = "deny(403)"
     priority = "1000"
@@ -345,7 +345,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Deny access by default"
   }
-  
+
   rule {
     action   = "allow"
     priority = "2000"
@@ -357,7 +357,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Allow access from specified IP ranges"
   }
-  
+
   rule {
     action   = "deny(403)"
     priority = "3000"
@@ -368,7 +368,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Block SQL injection attacks"
   }
-  
+
   rule {
     action   = "deny(403)"
     priority = "4000"
@@ -390,7 +390,7 @@ resource "google_kms_key_ring" "keyring" {
 resource "google_kms_crypto_key" "key" {
   name     = "gke-key"
   key_ring = google_kms_key_ring.keyring.id
-  
+
   lifecycle {
     prevent_destroy = true
   }
@@ -399,8 +399,8 @@ resource "google_kms_crypto_key" "key" {
 # 16. IAM para Cloud KMS
 resource "google_kms_crypto_key_iam_member" "crypto_key" {
   crypto_key_id = google_kms_crypto_key.key.id
-  role           = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member         = "serviceAccount:${data.google_service_account.gke_node.email}"
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${data.google_service_account.gke_node.email}"
 }
 
 
@@ -439,33 +439,33 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
 resource "google_cloud_run_service" "whoami_app" {
   name     = "whoami-app"
   location = var.region
-  
+
   template {
     spec {
       containers {
         image = "jwilder/whoami:latest"
-        
+
         ports {
           container_port = 8000
         }
-        
+
         resources {
           limits = {
             cpu    = "1000m"
             memory = "512Mi"
           }
         }
-        
+
         env {
           name  = "NODE_ENV"
           value = "production"
         }
       }
-      
-             service_account_name = data.google_service_account.gke_node.email
+
+      service_account_name = data.google_service_account.gke_node.email
     }
   }
-  
+
   traffic {
     percent         = 100
     latest_revision = true
@@ -483,7 +483,7 @@ resource "google_cloud_run_service_iam_member" "public_access" {
 # 25. Load Balancer para alta disponibilidade
 resource "google_compute_global_forwarding_rule" "default" {
   name       = "global-forwarding-rule"
-  target    = google_compute_target_https_proxy.default.id
+  target     = google_compute_target_https_proxy.default.id
   port_range = "443"
 }
 
@@ -503,26 +503,26 @@ resource "google_compute_backend_service" "default" {
   protocol    = "HTTP"
   port_name   = "http"
   timeout_sec = 10
-  
+
   backend {
     group = google_compute_instance_group_manager.default.instance_group
   }
-  
+
   health_checks = [google_compute_health_check.default.id]
 }
 
 resource "google_compute_instance_group_manager" "default" {
   name = "instance-group-manager"
-  
+
   base_instance_name = "whoami"
   zone               = var.zone
-  
+
   version {
     instance_template = google_compute_instance_template.default.id
   }
-  
+
   target_size = 2
-  
+
   named_port {
     name = "http"
     port = 8000
@@ -532,27 +532,27 @@ resource "google_compute_instance_group_manager" "default" {
 resource "google_compute_instance_template" "default" {
   name_prefix  = "whoami-template-"
   machine_type = "e2-micro"
-  
+
   disk {
     source_image = "debian-cloud/debian-11"
     auto_delete  = true
     boot         = true
   }
-  
+
   network_interface {
-    network = google_compute_network.vpc.id
+    network    = google_compute_network.vpc.id
     subnetwork = google_compute_subnetwork.subnet.id
-    
+
     access_config {
       // Ephemeral public IP
     }
   }
-  
+
   metadata_startup_script = <<-EOF
               #!/bin/bash
               docker run -d -p 8000:8000 jwilder/whoami:latest
               EOF
-  
+
   lifecycle {
     create_before_destroy = true
   }
@@ -560,7 +560,7 @@ resource "google_compute_instance_template" "default" {
 
 resource "google_compute_health_check" "default" {
   name = "health-check"
-  
+
   http_health_check {
     port = 8000
   }
@@ -568,7 +568,7 @@ resource "google_compute_health_check" "default" {
 
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "managed-ssl-certificate"
-  
+
   managed {
     domains = [var.domain_name]
   }
@@ -586,7 +586,7 @@ resource "google_dns_record_set" "default" {
   managed_zone = google_dns_managed_zone.default.name
   type         = "A"
   ttl          = 300
-  
+
   rrdatas = [google_compute_global_forwarding_rule.default.ip_address]
 }
 

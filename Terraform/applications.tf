@@ -207,8 +207,8 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
     name      = "devops-whoami-ingress"
     namespace = data.kubernetes_namespace.devops.metadata[0].name
     annotations = {
-      "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
-      "nginx.ingress.kubernetes.io/ssl-redirect" = "true"
+      "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
+      "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
       "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
     }
   }
@@ -247,8 +247,8 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
     name      = "sre-whoami-ingress"
     namespace = data.kubernetes_namespace.sre.metadata[0].name
     annotations = {
-      "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
-      "nginx.ingress.kubernetes.io/ssl-redirect" = "true"
+      "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
+      "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
       "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
     }
   }

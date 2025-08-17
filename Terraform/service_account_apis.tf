@@ -3,7 +3,7 @@
 
 # Referências para as contas de serviço dos módulos
 locals {
-  devops_sa_email = module.service_account.devops_email
+  devops_sa_email   = module.service_account.devops_email
   gke_node_sa_email = data.google_service_account.gke_node.email
 }
 
@@ -11,7 +11,7 @@ locals {
 resource "google_project_iam_member" "devops_api_access" {
   for_each = toset([
     "compute.googleapis.com",
-    "container.googleapis.com", 
+    "container.googleapis.com",
     "cloudbuild.googleapis.com",
     "run.googleapis.com",
     "cloudkms.googleapis.com",
@@ -21,7 +21,7 @@ resource "google_project_iam_member" "devops_api_access" {
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com"
   ])
-  
+
   project = var.project_id
   role    = "roles/servicemanagement.serviceController"
   member  = "serviceAccount:${local.devops_sa_email}"
@@ -30,13 +30,13 @@ resource "google_project_iam_member" "devops_api_access" {
 # 2. Conta GKE Node - Acesso específico para operações do cluster
 resource "google_project_iam_member" "gke_node_api_access" {
   for_each = toset([
-    "compute.googleapis.com",      # Para criar/gerenciar VMs
-    "container.googleapis.com",    # Para operações GKE
-    "storage.googleapis.com",      # Para pull de imagens
-    "logging.googleapis.com",      # Para logs do cluster
-    "monitoring.googleapis.com"    # Para métricas do cluster
+    "compute.googleapis.com",   # Para criar/gerenciar VMs
+    "container.googleapis.com", # Para operações GKE
+    "storage.googleapis.com",   # Para pull de imagens
+    "logging.googleapis.com",   # Para logs do cluster
+    "monitoring.googleapis.com" # Para métricas do cluster
   ])
-  
+
   project = var.project_id
   role    = "roles/servicemanagement.serviceController"
   member  = "serviceAccount:${local.gke_node_sa_email}"

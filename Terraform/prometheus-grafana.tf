@@ -9,7 +9,7 @@ resource "kubernetes_namespace" "monitoring" {
       name = "monitoring"
     }
   }
-  
+
   depends_on = [google_container_cluster.primary]
 }
 
@@ -19,141 +19,141 @@ resource "helm_release" "prometheus_stack" {
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  version    = "54.2.0"  # Versão mais estável
-  
+  version    = "54.2.0" # Versão mais estável
+
   # Configurações de timeout e retry
   timeout = 600
   wait    = true
-  
+
   # Configurações de retry para problemas de conectividade
-  max_history = 0
-  force_update = false
+  max_history   = 0
+  force_update  = false
   recreate_pods = false
-  
+
   # Configurações de dependências
   depends_on = [
     kubernetes_namespace.monitoring,
     google_container_cluster.primary
   ]
-  
+
   # Configurações do Prometheus
   set {
     name  = "prometheus.prometheusSpec.retention"
-    value = "30d"  # Retenção de 30 dias
+    value = "30d" # Retenção de 30 dias
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage"
-    value = "50Gi"  # 50GB de storage
+    value = "50Gi" # 50GB de storage
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName"
-    value = "standard"  # Classe de storage padrão do GKE
+    value = "standard" # Classe de storage padrão do GKE
   }
-  
+
   # Configurações do Grafana
   set {
     name  = "grafana.adminPassword"
-    value = "admin123"  # Senha padrão - alterar em produção
+    value = "admin123" # Senha padrão - alterar em produção
   }
-  
+
   set {
     name  = "grafana.persistence.enabled"
     value = "true"
   }
-  
+
   set {
     name  = "grafana.persistence.size"
     value = "10Gi"
   }
-  
+
   # Configurações do AlertManager
   set {
     name  = "alertmanager.alertmanagerSpec.retention"
-    value = "120h"  # 5 dias de retenção
+    value = "120h" # 5 dias de retenção
   }
-  
+
   set {
     name  = "alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage"
     value = "10Gi"
   }
-  
+
   # Configurações de recursos
   set {
     name  = "prometheus.prometheusSpec.resources.requests.memory"
     value = "2Gi"
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.resources.requests.cpu"
     value = "500m"
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.resources.limits.memory"
     value = "4Gi"
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.resources.limits.cpu"
     value = "1000m"
   }
-  
+
   set {
     name  = "grafana.resources.requests.memory"
     value = "256Mi"
   }
-  
+
   set {
     name  = "grafana.resources.requests.cpu"
     value = "100m"
   }
-  
+
   set {
     name  = "grafana.resources.limits.memory"
     value = "512Mi"
   }
-  
+
   set {
     name  = "grafana.resources.limits.cpu"
     value = "200m"
   }
-  
+
   # Configurações de segurança
   set {
     name  = "prometheus.prometheusSpec.podSecurityContext.runAsNonRoot"
     value = "true"
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.podSecurityContext.runAsUser"
-    value = "65534"  # nobody
+    value = "65534" # nobody
   }
-  
+
   set {
     name  = "grafana.podSecurityContext.runAsNonRoot"
     value = "true"
   }
-  
+
   set {
     name  = "grafana.podSecurityContext.runAsUser"
-    value = "65534"  # nobody
+    value = "65534" # nobody
   }
-  
+
   # Configurações de rede
   set {
     name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
     value = "false"
   }
-  
+
   set {
     name  = "prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues"
     value = "false"
   }
-  
+
   # Configurações de scraping
-    # Configuração de scraping temporariamente removida para resolver problemas de sintaxe
+  # Configuração de scraping temporariamente removida para resolver problemas de sintaxe
   # set {
   #   name  = "prometheus.prometheusSpec.additionalScrapeConfigs[0]"
   #   value = <<-EOT
@@ -183,9 +183,9 @@ resource "helm_release" "prometheus_stack" {
   #     target_label: kubernetes_pod_name
   # EOT
   # }
-  
+
   # Lifecycle para evitar destruição acidental
-  
+
   # Lifecycle para evitar destruição acidental
   lifecycle {
     prevent_destroy = false
@@ -201,22 +201,22 @@ resource "kubernetes_service" "grafana_external" {
       "cloud.google.com/load-balancer-type" = "External"
     }
   }
-  
+
   spec {
     selector = {
-      "app.kubernetes.io/name" = "grafana"
+      "app.kubernetes.io/name"     = "grafana"
       "app.kubernetes.io/instance" = "prometheus"
     }
-    
+
     port {
       port        = 80
       target_port = 3000
       protocol    = "TCP"
     }
-    
+
     type = "LoadBalancer"
   }
-  
+
   depends_on = [helm_release.prometheus_stack]
 }
 
@@ -229,22 +229,22 @@ resource "kubernetes_service" "prometheus_external" {
       "cloud.google.com/load-balancer-type" = "External"
     }
   }
-  
+
   spec {
     selector = {
-      "app.kubernetes.io/name" = "prometheus"
+      "app.kubernetes.io/name"     = "prometheus"
       "app.kubernetes.io/instance" = "prometheus"
     }
-    
+
     port {
       port        = 80
       target_port = 9090
       protocol    = "TCP"
     }
-    
+
     type = "LoadBalancer"
   }
-  
+
   depends_on = [helm_release.prometheus_stack]
 }
 
@@ -257,22 +257,22 @@ resource "kubernetes_service" "alertmanager_external" {
       "cloud.google.com/load-balancer-type" = "External"
     }
   }
-  
+
   spec {
     selector = {
-      "app.kubernetes.io/name" = "alertmanager"
+      "app.kubernetes.io/name"     = "alertmanager"
       "app.kubernetes.io/instance" = "prometheus"
     }
-    
+
     port {
       port        = 80
       target_port = 9093
       protocol    = "TCP"
     }
-    
+
     type = "LoadBalancer"
   }
-  
+
   depends_on = [helm_release.prometheus_stack]
 }
 
@@ -285,63 +285,63 @@ resource "kubernetes_config_map" "grafana_dashboards" {
       "grafana_dashboard" = "1"
     }
   }
-  
+
   data = {
     "gke-cluster-overview.json" = jsonencode({
-      title = "GKE Cluster Overview"
-      type = "dashboard"
-      uid = "gke-cluster-overview"
+      title   = "GKE Cluster Overview"
+      type    = "dashboard"
+      uid     = "gke-cluster-overview"
       version = 1
       panels = [
         {
-          title = "Cluster CPU Usage"
-          type = "graph"
+          title   = "Cluster CPU Usage"
+          type    = "graph"
           gridPos = { h = 8, w = 12, x = 0, y = 0 }
           targets = [
             {
-              expr = "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (pod)"
+              expr         = "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (pod)"
               legendFormat = "{{pod}}"
             }
           ]
         },
         {
-          title = "Cluster Memory Usage"
-          type = "graph"
+          title   = "Cluster Memory Usage"
+          type    = "graph"
           gridPos = { h = 8, w = 12, x = 12, y = 0 }
           targets = [
             {
-              expr = "sum(rate(container_memory_usage_bytes{container!=\"\"}[5m])) by (pod)"
+              expr         = "sum(rate(container_memory_usage_bytes{container!=\"\"}[5m])) by (pod)"
               legendFormat = "{{pod}}"
             }
           ]
         }
       ]
     })
-    
+
     "gke-node-metrics.json" = jsonencode({
-      title = "GKE Node Metrics"
-      type = "dashboard"
-      uid = "gke-node-metrics"
+      title   = "GKE Node Metrics"
+      type    = "dashboard"
+      uid     = "gke-node-metrics"
       version = 1
       panels = [
         {
-          title = "Node CPU Usage"
-          type = "graph"
+          title   = "Node CPU Usage"
+          type    = "graph"
           gridPos = { h = 8, w = 12, x = 0, y = 0 }
           targets = [
             {
-              expr = "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+              expr         = "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
               legendFormat = "{{instance}}"
             }
           ]
         },
         {
-          title = "Node Memory Usage"
-          type = "graph"
+          title   = "Node Memory Usage"
+          type    = "graph"
           gridPos = { h = 8, w = 12, x = 12, y = 0 }
           targets = [
             {
-              expr = "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)"
+              expr         = "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)"
               legendFormat = "{{instance}}"
             }
           ]
@@ -349,7 +349,7 @@ resource "kubernetes_config_map" "grafana_dashboards" {
       ]
     })
   }
-  
+
   depends_on = [helm_release.prometheus_stack]
 }
 
@@ -360,10 +360,10 @@ resource "kubernetes_config_map" "prometheus_rules" {
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     labels = {
       "prometheus" = "kube-prometheus"
-      "role" = "alert-rules"
+      "role"       = "alert-rules"
     }
   }
-  
+
   data = {
     "gke-alerts.yaml" = yamlencode({
       groups = [
@@ -372,49 +372,49 @@ resource "kubernetes_config_map" "prometheus_rules" {
           rules = [
             {
               alert = "HighCPUUsage"
-              expr = "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100) > 80"
-              for = "5m"
+              expr  = "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100) > 80"
+              for   = "5m"
               labels = {
                 severity = "warning"
               }
               annotations = {
-                summary = "High CPU usage on {{ $labels.instance }}"
+                summary     = "High CPU usage on {{ $labels.instance }}"
                 description = "CPU usage is above 80% for more than 5 minutes"
               }
             },
             {
               alert = "HighMemoryUsage"
-              expr = "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 80"
-              for = "5m"
+              expr  = "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100) > 80"
+              for   = "5m"
               labels = {
                 severity = "warning"
               }
               annotations = {
-                summary = "High memory usage on {{ $labels.instance }}"
+                summary     = "High memory usage on {{ $labels.instance }}"
                 description = "Memory usage is above 80% for more than 5 minutes"
               }
             },
             {
               alert = "PodRestartingFrequently"
-              expr = "increase(kube_pod_container_status_restarts_total[15m]) > 5"
-              for = "2m"
+              expr  = "increase(kube_pod_container_status_restarts_total[15m]) > 5"
+              for   = "2m"
               labels = {
                 severity = "warning"
               }
               annotations = {
-                summary = "Pod {{ $labels.pod }} is restarting frequently"
+                summary     = "Pod {{ $labels.pod }} is restarting frequently"
                 description = "Pod has restarted more than 5 times in the last 15 minutes"
               }
             },
             {
               alert = "NodeDown"
-              expr = "up{job=\"kubernetes-nodes\"} == 0"
-              for = "1m"
+              expr  = "up{job=\"kubernetes-nodes\"} == 0"
+              for   = "1m"
               labels = {
                 severity = "critical"
               }
               annotations = {
-                summary = "Node {{ $labels.instance }} is down"
+                summary     = "Node {{ $labels.instance }} is down"
                 description = "Node has been down for more than 1 minute"
               }
             }
@@ -423,7 +423,7 @@ resource "kubernetes_config_map" "prometheus_rules" {
       ]
     })
   }
-  
+
   depends_on = [helm_release.prometheus_stack]
 }
 

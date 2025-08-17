@@ -10,24 +10,24 @@ resource "google_cloudbuild_trigger" "app_trigger" {
   description = "Trigger para build da aplicação principal"
   project     = var.project_id
   location    = "global"
-  
+
   github {
-    owner  = var.github_owner
-    name   = "projeto-sre-devops"
+    owner = var.github_owner
+    name  = "projeto-sre-devops"
     push {
       branch = "main"
     }
   }
-  
+
   filename = "cloudbuild.yaml"
-  
+
   substitutions = {
-    _CLUSTER_NAME   = google_container_cluster.primary.name
-    _ZONE           = var.zone
-    _PROJECT_ID     = var.project_id
-    _REGION         = var.region
-    _DEVOPS_DOMAIN  = var.devops_domain
-    _SRE_DOMAIN     = var.sre_domain
+    _CLUSTER_NAME  = google_container_cluster.primary.name
+    _ZONE          = var.zone
+    _PROJECT_ID    = var.project_id
+    _REGION        = var.region
+    _DEVOPS_DOMAIN = var.devops_domain
+    _SRE_DOMAIN    = var.sre_domain
   }
 }
 
