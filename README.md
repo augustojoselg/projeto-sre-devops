@@ -412,3 +412,5 @@ Para suporte e dúvidas:
 ---
 
 **Desenvolvido com ❤️ pela equipe de SRE**
+#   T r i g g e r i n g   p i p e l i n e   t o   s y n c   w i t h   r e m o t e   b a c k e n d  
+ 
