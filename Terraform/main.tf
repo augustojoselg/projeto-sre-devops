@@ -473,54 +473,12 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
 #   }
 # }
 
-# 23. Cloud Run para aplicação de exemplo (REUTILIZÁVEL - só cria se não existir)
-resource "google_cloud_run_service" "whoami_app" {
-  name     = "whoami-app"
-  location = var.region
-
-  template {
-    spec {
-      containers {
-        image = "jwilder/whoami:latest"
-
-        ports {
-          container_port = 8000
-        }
-
-        resources {
-          limits = {
-            cpu    = "1000m"
-            memory = "512Mi"
-          }
-        }
-
-        env {
-          name  = "NODE_ENV"
-          value = "production"
-        }
-      }
-
-      service_account_name = data.google_service_account.gke_node.email
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-
-  # Tornar reutilizável - só recria se houver mudanças
-  lifecycle {
-    create_before_destroy = true
-    ignore_changes = [
-      # Ignora mudanças que não afetam a funcionalidade
-      template[0].metadata[0].annotations,
-      template[0].metadata[0].labels
-    ]
-  }
-
-  # Adicionar tags para identificação
+# 23. APLICAÇÃO KUBERNETES NATIVA (SUBSTITUI CLOUD RUN - MAIS RÁPIDA)
+# Aplicação WhoAmI como Deployment Kubernetes
+resource "kubernetes_deployment" "whoami_app" {
   metadata {
+    name      = "whoami-app"
+    namespace = "default"
     labels = {
       app         = "whoami"
       environment = "production"
@@ -528,20 +486,207 @@ resource "google_cloud_run_service" "whoami_app" {
       version     = "v1-0-0"
     }
   }
-}
 
-# 24. IAM para Cloud Run (REUTILIZÁVEL)
-resource "google_cloud_run_service_iam_member" "public_access" {
-  location = google_cloud_run_service.whoami_app.location
-  service  = google_cloud_run_service.whoami_app.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+  spec {
+    replicas = 2
 
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
+    selector {
+      match_labels = {
+        app = "whoami"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app         = "whoami"
+          environment = "production"
+          managed_by  = "terraform"
+          version     = "v1-0-0"
+        }
+      }
+
+      spec {
+        container {
+          image = "jwilder/whoami:latest"
+          name  = "whoami"
+
+          ports {
+            container_port = 8000
+          }
+
+          resources {
+            limits = {
+              cpu    = "500m"
+              memory = "256Mi"
+            }
+            requests = {
+              cpu    = "250m"
+              memory = "128Mi"
+            }
+          }
+
+          env {
+            name  = "NODE_ENV"
+            value = "production"
+          }
+
+          liveness_probe {
+            http_get {
+              path = "/"
+              port = 8000
+            }
+            initial_delay_seconds = 30
+            period_seconds        = 10
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/"
+              port = 8000
+            }
+            initial_delay_seconds = 5
+            period_seconds        = 5
+          }
+        }
+      }
+    }
   }
+
+  depends_on = [google_container_cluster.primary]
 }
+
+# Service para expor a aplicação
+resource "kubernetes_service" "whoami_app" {
+  metadata {
+    name      = "whoami-app"
+    namespace = "default"
+    labels = {
+      app         = "whoami"
+      environment = "production"
+      managed_by  = "terraform"
+    }
+  }
+
+  spec {
+    selector = {
+      app = "whoami"
+    }
+
+    port {
+      port        = 80
+      target_port = 8000
+      protocol    = "TCP"
+    }
+
+    type = "ClusterIP"
+  }
+
+  depends_on = [kubernetes_deployment.whoami_app]
+}
+
+# Ingress para acesso externo
+resource "kubernetes_ingress_v1" "whoami_app" {
+  metadata {
+    name      = "whoami-app"
+    namespace = "default"
+    labels = {
+      app         = "whoami"
+      environment = "production"
+      managed_by  = "terraform"
+    }
+    annotations = {
+      "kubernetes.io/ingress.class"                    = "nginx"
+      "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
+      "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
+      "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
+    }
+  }
+
+  spec {
+    tls {
+      hosts       = [var.domain_name]
+      secret_name = "whoami-app-tls"
+    }
+
+    rule {
+      host = var.domain_name
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.whoami_app.metadata[0].name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [kubernetes_service.whoami_app]
+}
+
+# 24. CLOUD RUN COMENTADO (MUITO LENTO)
+# resource "google_cloud_run_service" "whoami_app" {
+#   name     = "whoami-app"
+#   location = var.region
+# 
+#   template {
+#     spec {
+#       containers {
+#         image = "jwilder/whoami:latest"
+# 
+#         ports {
+#           container_port = 8000
+#         }
+# 
+#         resources {
+#           limits = {
+#             cpu    = "1000m"
+#             memory = "512Mi"
+#           }
+#         }
+# 
+#         env {
+#           name  = "NODE_ENV"
+#           value = "production"
+#         }
+#       }
+# 
+#       service_account_name = data.google_service_account.gke_node.email
+#     }
+#   }
+# 
+#   traffic {
+#     percent         = 100
+#     latest_revision = true
+#   }
+# 
+#   # Tornar reutilizável - só recria se houver mudanças
+#   lifecycle {
+#     create_before_destroy = true
+#     ignore_changes = [
+#       # Ignora mudanças que não afetam a funcionalidade
+#       template[0].metadata[0].annotations,
+#       template[0].metadata[0].labels
+#     ]
+#   }
+# 
+#   # Adicionar tags para identificação
+#   metadata {
+#     labels = {
+#       app         = "whoami"
+#       environment = "production"
+#       managed_by  = "terraform"
+#       version     = "v1-0-0"
+#     }
+#   }
+# }
 
 # 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
 resource "google_compute_global_forwarding_rule" "default" {
