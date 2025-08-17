@@ -1,16 +1,16 @@
 output "cluster_name" {
   description = "Nome do cluster GKE"
-  value       = google_container_cluster.primary.name
+  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.name : google_container_cluster.primary[0].name
 }
 
 output "cluster_endpoint" {
   description = "Endpoint do cluster GKE"
-  value       = google_container_cluster.primary.endpoint
+  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint
 }
 
 output "cluster_location" {
   description = "Localização do cluster GKE"
-  value       = google_container_cluster.primary.location
+  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.location : google_container_cluster.primary[0].location
 }
 
 

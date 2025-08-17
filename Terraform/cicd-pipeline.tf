@@ -22,7 +22,7 @@ resource "google_cloudbuild_trigger" "app_trigger" {
   filename = "cloudbuild.yaml"
 
   substitutions = {
-    _CLUSTER_NAME  = google_container_cluster.primary.name
+    _CLUSTER_NAME  = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.name : google_container_cluster.primary[0].name
     _ZONE          = var.zone
     _PROJECT_ID    = var.project_id
     _REGION        = var.region

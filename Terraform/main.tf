@@ -7,17 +7,17 @@ provider "google" {
 
 # Configuração do provedor Kubernetes (após criar o cluster)
 provider "kubernetes" {
-  host                   = "https://${google_container_cluster.primary.endpoint}"
+  host                   = "https://${data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint}"
   token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
+  cluster_ca_certificate = base64decode(data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.master_auth[0].cluster_ca_certificate : google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
 }
 
 # Configuração do provedor Helm
 provider "helm" {
   kubernetes {
-    host                   = "https://${google_container_cluster.primary.endpoint}"
+    host                   = "https://${data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint}"
     token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
+    cluster_ca_certificate = base64decode(data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.master_auth[0].cluster_ca_certificate : google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
   }
 }
 
@@ -649,7 +649,7 @@ resource "kubernetes_deployment" "whoami_app" {
     }
   }
 
-  depends_on = [google_container_cluster.primary]
+  depends_on = [data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster : google_container_cluster.primary[0]]
 }
 
 # Service para expor a aplicação
