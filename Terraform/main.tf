@@ -32,13 +32,29 @@ module "service_account" {
   region     = var.region
 }
 
-# 1. VPC e Subnets
+# 1. VPC e Subnets (REUTILIZÁVEL - só cria se não existir)
+data "google_compute_network" "vpc" {
+  name = "${var.project_id}-vpc"
+}
+
+# Fallback para criar VPC se não existir
 resource "google_compute_network" "vpc" {
+  count                   = data.google_compute_network.vpc.name == "${var.project_id}-vpc" ? 0 : 1
   name                    = "${var.project_id}-vpc"
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
 
   depends_on = [google_project_service.compute]
+  
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Usar VPC existente ou criada
+locals {
+  vpc_id = data.google_compute_network.vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.vpc.id : google_compute_network.vpc[0].id
 }
 
 resource "google_compute_subnetwork" "subnet" {
@@ -317,9 +333,15 @@ resource "google_compute_router_nat" "nat" {
 
 
 
-# 14. Cloud Armor para segurança adicional
-resource "google_compute_security_policy" "security_policy" {
+# 14. Cloud Armor para segurança adicional (REUTILIZÁVEL - só cria se não existir)
+data "google_compute_security_policy" "security_policy" {
   name = "security-policy"
+}
+
+# Fallback para criar Security Policy se não existir
+resource "google_compute_security_policy" "security_policy" {
+  count = data.google_compute_security_policy.security_policy.name == "security-policy" ? 0 : 1
+  name  = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -379,28 +401,73 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Block XSS attacks"
   }
+  
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-# 15. Cloud KMS para criptografia
-resource "google_kms_key_ring" "keyring" {
+# Usar Security Policy existente ou criada
+locals {
+  security_policy_id = data.google_compute_security_policy.security_policy.name == "security-policy" ? data.google_compute_security_policy.security_policy.id : google_compute_security_policy.security_policy[0].id
+}
+
+# 15. Cloud KMS para criptografia (REUTILIZÁVEL - só cria se não existir)
+data "google_kms_key_ring" "keyring" {
   name     = "gke-keyring"
   location = var.region
 }
 
-resource "google_kms_crypto_key" "key" {
+# Fallback para criar Key Ring se não existir
+resource "google_kms_key_ring" "keyring" {
+  count    = data.google_kms_key_ring.keyring.name == "gke-keyring" ? 0 : 1
+  name     = "gke-keyring"
+  location = var.region
+  
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Usar Key Ring existente ou criado
+locals {
+  keyring_id = data.google_kms_key_ring.keyring.name == "gke-keyring" ? data.google_kms_key_ring.keyring.id : google_kms_key_ring.keyring[0].id
+}
+
+data "google_kms_crypto_key" "key" {
   name     = "gke-key"
-  key_ring = google_kms_key_ring.keyring.id
+  key_ring = local.keyring_id
+}
+
+# Fallback para criar Crypto Key se não existir
+resource "google_kms_crypto_key" "key" {
+  count     = data.google_kms_crypto_key.key.name == "gke-key" ? 0 : 1
+  name      = "gke-key"
+  key_ring  = local.keyring_id
 
   lifecycle {
     prevent_destroy = true
+    create_before_destroy = true
   }
+}
+
+# Usar Crypto Key existente ou criado
+locals {
+  crypto_key_id = data.google_kms_crypto_key.key.name == "gke-key" ? data.google_kms_crypto_key.key.id : google_kms_crypto_key.key[0].id
 }
 
 # 16. IAM para Cloud KMS
 resource "google_kms_crypto_key_iam_member" "crypto_key" {
-  crypto_key_id = google_kms_crypto_key.key.id
+  crypto_key_id = local.crypto_key_id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
+  
+  # Tornar reutilizável
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 
@@ -487,7 +554,7 @@ resource "google_cloud_run_service" "whoami_app" {
       app         = "whoami"
       environment = "production"
       managed_by  = "terraform"
-      version     = "1.0.0"
+      version     = "v1-0-0"
     }
   }
 }
