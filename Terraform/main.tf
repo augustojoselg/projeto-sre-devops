@@ -653,7 +653,10 @@ resource "kubernetes_deployment" "whoami_app" {
     }
   }
 
-  depends_on = [data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster : google_container_cluster.primary[0]]
+  depends_on = [
+    google_container_cluster.primary,
+    data.google_container_cluster.existing_cluster
+  ]
 }
 
 # Service para expor a aplicação
