@@ -26,8 +26,8 @@ output "subnet_name" {
 }
 
 output "load_balancer_ip" {
-  description = "IP do load balancer"
-  value       = google_compute_global_forwarding_rule.default.ip_address
+  description = "IP do load balancer (Ingress Controller)"
+  value       = "A ser configurado pelo Ingress Controller"
 }
 
 output "domain_name" {

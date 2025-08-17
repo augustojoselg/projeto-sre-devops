@@ -335,15 +335,9 @@ resource "google_compute_router_nat" "nat" {
 
 
 # 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
-# Verificar se o Security Policy já existe
-data "google_compute_security_policy" "existing_security_policy" {
-  name = "security-policy"
-}
-
 # Fallback para criar Security Policy se não existir
 resource "google_compute_security_policy" "security_policy" {
-  count = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? 0 : 1
-  name  = "security-policy"
+  name = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -410,9 +404,9 @@ resource "google_compute_security_policy" "security_policy" {
   }
 }
 
-# Usar Security Policy existente ou criada
+# Usar Security Policy criada
 locals {
-  security_policy_id = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? data.google_compute_security_policy.existing_security_policy.id : google_compute_security_policy.security_policy[0].id
+  security_policy_id = google_compute_security_policy.security_policy.id
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
@@ -738,14 +732,9 @@ resource "google_compute_health_check" "default" {
 }
 
 # Verificar se o SSL Certificate já existe
-data "google_compute_managed_ssl_certificate" "existing_ssl_cert" {
-  name = "managed-ssl-certificate"
-}
-
 # Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
-  count = data.google_compute_managed_ssl_certificate.existing_ssl_cert.name == "managed-ssl-certificate" ? 0 : 1
-  name  = "managed-ssl-certificate"
+  name = "managed-ssl-certificate"
 
   managed {
     domains = [var.domain_name]
@@ -758,13 +747,8 @@ resource "google_compute_managed_ssl_certificate" "default" {
 }
 
 # Verificar se o DNS Zone já existe
-data "google_dns_managed_zone" "existing_dns_zone" {
-  name = "default-zone"
-}
-
 # Fallback para criar DNS Zone se não existir
 resource "google_dns_managed_zone" "default" {
-  count       = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? 0 : 1
   name        = "default-zone"
   dns_name    = "${var.domain_name}."
   description = "DNS zone for the project"
@@ -773,7 +757,7 @@ resource "google_dns_managed_zone" "default" {
 # 26. DNS para o domínio
 resource "google_dns_record_set" "default" {
   name         = "${var.domain_name}."
-  managed_zone = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? data.google_dns_managed_zone.existing_dns_zone.name : google_dns_managed_zone.default[0].name
+  managed_zone = google_dns_managed_zone.default.name
   type         = "A"
   ttl          = 300
 
