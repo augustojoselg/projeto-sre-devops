@@ -249,7 +249,7 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
           path_type = "Prefix"
           backend {
             service {
-              name = kubernetes_service.devops_whoami_service.metadata[0].name
+              name = data.kubernetes_service.existing_devops_service.id != "" ? data.kubernetes_service.existing_devops_service.metadata[0].name : kubernetes_service.devops_whoami_service[0].metadata[0].name
               port {
                 number = 80
               }
@@ -289,7 +289,7 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
           path_type = "Prefix"
           backend {
             service {
-              name = kubernetes_service.sre_whoami_service.metadata[0].name
+              name = data.kubernetes_service.existing_sre_service.id != "" ? data.kubernetes_service.existing_sre_service.metadata[0].name : kubernetes_service.sre_whoami_service[0].metadata[0].name
               port {
                 number = 80
               }

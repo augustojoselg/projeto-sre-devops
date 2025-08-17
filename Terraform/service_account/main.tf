@@ -34,9 +34,10 @@ resource "google_project_iam_member" "devops_roles" {
   member  = "serviceAccount:${data.google_service_account.existing_devops_sa.email != "" ? data.google_service_account.existing_devops_sa.email : google_service_account.devops[0].email}"
 }
 
-# 4️⃣ Gerar chave JSON
+# Gera chave para a conta de serviço (opcional, mas necessário para o output)
 resource "google_service_account_key" "devops_key" {
-  service_account_id = google_service_account.devops.name
+  service_account_id = data.google_service_account.existing_devops_sa.email != "" ? data.google_service_account.existing_devops_sa.name : google_service_account.devops[0].name
+  public_key_type    = "TYPE_X509_PEM_FILE"
 }
 
 # 5️⃣ Salvar chave localmente
