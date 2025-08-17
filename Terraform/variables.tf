@@ -141,4 +141,5 @@ variable "discord_webhook_url" {
   description = "URL do webhook do Discord para notificações"
   type        = string
   default     = ""
+  sensitive   = true
 }
