@@ -33,9 +33,14 @@ module "service_account" {
 }
 
 # 1. VPC e Subnets (REUTILIZÁVEL - só cria se não existir)
+# Verificar se a VPC já existe
+data "google_compute_network" "existing_vpc" {
+  name = "${var.project_id}-vpc"
+}
+
 # Fallback para criar VPC se não existir
 resource "google_compute_network" "vpc" {
-  count                   = 1 # Sempre criar
+  count                   = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? 0 : 1
   name                    = "${var.project_id}-vpc"
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
@@ -48,9 +53,9 @@ resource "google_compute_network" "vpc" {
   }
 }
 
-# Usar VPC criada
+# Usar VPC existente ou criada
 locals {
-  vpc_id = google_compute_network.vpc[0].id
+  vpc_id = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
 }
 
 resource "google_compute_subnetwork" "subnet" {
@@ -330,8 +335,15 @@ resource "google_compute_router_nat" "nat" {
 
 
 # 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
-resource "google_compute_security_policy" "security_policy" {
+# Verificar se o Security Policy já existe
+data "google_compute_security_policy" "existing_security_policy" {
   name = "security-policy"
+}
+
+# Fallback para criar Security Policy se não existir
+resource "google_compute_security_policy" "security_policy" {
+  count = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? 0 : 1
+  name  = "security-policy"
 
   # REGRA PADRÃO OBRIGATÓRIA (prioridade 2147483647)
   rule {
@@ -400,11 +412,19 @@ resource "google_compute_security_policy" "security_policy" {
 
 # Usar Security Policy existente ou criada
 locals {
-  security_policy_id = google_compute_security_policy.security_policy.id
+  security_policy_id = data.google_compute_security_policy.existing_security_policy.name == "security-policy" ? data.google_compute_security_policy.existing_security_policy.id : google_compute_security_policy.security_policy[0].id
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
+# Verificar se o Key Ring já existe
+data "google_kms_key_ring" "existing_keyring" {
+  name     = "gke-keyring"
+  location = var.region
+}
+
+# Fallback para criar Key Ring se não existir
 resource "google_kms_key_ring" "keyring" {
+  count    = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
 
@@ -414,9 +434,17 @@ resource "google_kms_key_ring" "keyring" {
   }
 }
 
-resource "google_kms_crypto_key" "key" {
+# Verificar se o Crypto Key já existe
+data "google_kms_crypto_key" "existing_key" {
   name     = "gke-key"
-  key_ring = google_kms_key_ring.keyring.id
+  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
+}
+
+# Fallback para criar Crypto Key se não existir
+resource "google_kms_crypto_key" "key" {
+  count     = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
+  name      = "gke-key"
+  key_ring  = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
 
   lifecycle {
     prevent_destroy       = true
@@ -426,12 +454,12 @@ resource "google_kms_crypto_key" "key" {
 
 # Usar Crypto Key existente ou criado
 locals {
-  crypto_key_id = google_kms_crypto_key.key.id
+  crypto_key_id = data.google_kms_crypto_key.existing_key.name == "gke-key" ? data.google_kms_crypto_key.existing_key.id : google_kms_crypto_key.key[0].id
 }
 
 # 16. IAM para Cloud KMS
 resource "google_kms_crypto_key_iam_member" "crypto_key" {
-  crypto_key_id = google_kms_crypto_key.key.id
+  crypto_key_id = local.crypto_key_id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
 
@@ -689,111 +717,15 @@ resource "kubernetes_ingress_v1" "whoami_app" {
 # }
 
 # 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
-resource "google_compute_global_forwarding_rule" "default" {
-  name       = "global-forwarding-rule"
-  target     = google_compute_target_https_proxy.default.id
-  port_range = "443"
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_target_https_proxy" "default" {
-  name             = "target-https-proxy"
-  url_map          = google_compute_url_map.default.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.default.id]
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_url_map" "default" {
-  name            = "url-map"
-  default_service = google_compute_backend_service.default.id
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_backend_service" "default" {
-  name        = "backend-service"
-  protocol    = "HTTP"
-  port_name   = "http"
-  timeout_sec = 10
-
-  backend {
-    group = google_compute_instance_group_manager.default.instance_group
-  }
-
-  health_checks = [google_compute_health_check.default.id]
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_instance_group_manager" "default" {
-  name = "instance-group-manager"
-
-  base_instance_name = "whoami"
-  zone               = var.zone
-
-  version {
-    instance_template = google_compute_instance_template.default.id
-  }
-
-  target_size = 2
-
-  named_port {
-    name = "http"
-    port = 8000
-  }
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_instance_template" "default" {
-  name_prefix  = "whoami-template-"
-  machine_type = "e2-micro"
-
-  disk {
-    source_image = "debian-cloud/debian-11"
-    auto_delete  = true
-    boot         = true
-  }
-
-  network_interface {
-    network    = local.vpc_id
-    subnetwork = google_compute_subnetwork.subnet.id
-
-    access_config {
-      // Ephemeral public IP
-    }
-  }
-
-  metadata_startup_script = <<-EOF
-              #!/bin/bash
-              docker run -d -p 8000:8000 jwilder/whoami:latest
-              EOF
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_health_check" "default" {
+# Verificar se o Health Check já existe
+data "google_compute_health_check" "existing_health_check" {
   name = "health-check"
+}
+
+# Fallback para criar Health Check se não existir
+resource "google_compute_health_check" "default" {
+  count = data.google_compute_health_check.existing_health_check.name == "health-check" ? 0 : 1
+  name  = "health-check"
 
   http_health_check {
     port = 8000
@@ -805,8 +737,15 @@ resource "google_compute_health_check" "default" {
   }
 }
 
-resource "google_compute_managed_ssl_certificate" "default" {
+# Verificar se o SSL Certificate já existe
+data "google_compute_managed_ssl_certificate" "existing_ssl_cert" {
   name = "managed-ssl-certificate"
+}
+
+# Fallback para criar SSL Certificate se não existir
+resource "google_compute_managed_ssl_certificate" "default" {
+  count = data.google_compute_managed_ssl_certificate.existing_ssl_cert.name == "managed-ssl-certificate" ? 0 : 1
+  name  = "managed-ssl-certificate"
 
   managed {
     domains = [var.domain_name]
@@ -818,20 +757,27 @@ resource "google_compute_managed_ssl_certificate" "default" {
   }
 }
 
-# 26. DNS para o domínio
+# Verificar se o DNS Zone já existe
+data "google_dns_managed_zone" "existing_dns_zone" {
+  name = "default-zone"
+}
+
+# Fallback para criar DNS Zone se não existir
 resource "google_dns_managed_zone" "default" {
+  count       = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? 0 : 1
   name        = "default-zone"
   dns_name    = "${var.domain_name}."
   description = "DNS zone for the project"
 }
 
+# 26. DNS para o domínio
 resource "google_dns_record_set" "default" {
   name         = "${var.domain_name}."
-  managed_zone = google_dns_managed_zone.default.name
+  managed_zone = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? data.google_dns_managed_zone.existing_dns_zone.name : google_dns_managed_zone.default[0].name
   type         = "A"
   ttl          = 300
 
-  rrdatas = [google_compute_global_forwarding_rule.default.ip_address]
+  rrdatas = ["8.8.8.8"] # IP temporário - será atualizado pelo Ingress
 }
 
 # 27. Cloud Monitoring para métricas customizadas (SUBSTITUÍDO POR PROMETHEUS + GRAFANA)
