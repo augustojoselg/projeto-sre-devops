@@ -54,7 +54,7 @@ resource "google_compute_network" "vpc" {
 
 # Usar VPC existente ou criada
 locals {
-  vpc_id = data.google_compute_network.vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.vpc.id : google_compute_network.vpc[0].id
+  vpc_id = google_compute_network.vpc[0].id
 }
 
 resource "google_compute_subnetwork" "subnet" {
