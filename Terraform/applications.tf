@@ -221,8 +221,18 @@ resource "kubernetes_service" "sre_whoami_service" {
   depends_on = [kubernetes_deployment.sre_whoami]
 }
 
-# 7. Ingress para DevOps
+# --- DEVOPS ---
+# Verifica se o Ingress já existe
+data "kubernetes_ingress_v1" "existing_devops_ingress" {
+  metadata {
+    name      = "devops-whoami-ingress"
+    namespace = "devops"
+  }
+}
+
 resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
+  count = data.kubernetes_ingress_v1.existing_devops_ingress.id == "" ? 1 : 0
+
   metadata {
     name      = "devops-whoami-ingress"
     namespace = data.kubernetes_namespace.devops.metadata[0].name
@@ -261,8 +271,18 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
   }
 }
 
-# 8. Ingress para SRE
+# --- SRE ---
+# Verifica se o Ingress já existe
+data "kubernetes_ingress_v1" "existing_sre_ingress" {
+  metadata {
+    name      = "sre-whoami-ingress"
+    namespace = "sre"
+  }
+}
+
 resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
+  count = data.kubernetes_ingress_v1.existing_sre_ingress.id == "" ? 1 : 0
+
   metadata {
     name      = "sre-whoami-ingress"
     namespace = data.kubernetes_namespace.sre.metadata[0].name
