@@ -395,7 +395,7 @@ resource "google_compute_security_policy" "security_policy" {
     }
     description = "Block XSS attacks"
   }
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -411,7 +411,7 @@ locals {
 resource "google_kms_key_ring" "keyring" {
   name     = "gke-keyring"
   location = var.region
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
@@ -419,11 +419,11 @@ resource "google_kms_key_ring" "keyring" {
 }
 
 resource "google_kms_crypto_key" "key" {
-  name      = "gke-key"
-  key_ring  = google_kms_key_ring.keyring.id
+  name     = "gke-key"
+  key_ring = google_kms_key_ring.keyring.id
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy       = true
     create_before_destroy = true
   }
 }
@@ -438,7 +438,7 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
   crypto_key_id = google_kms_crypto_key.key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
-  
+
   # Tornar reutilizável
   lifecycle {
     create_before_destroy = true
