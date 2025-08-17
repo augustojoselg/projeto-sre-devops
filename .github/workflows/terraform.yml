@@ -46,7 +46,7 @@ jobs:
     - name: Configure kubectl
       run: |
         gcloud container clusters get-credentials ${{ secrets.GOOGLE_CLUSTER_NAME }} \
-          --zone ${{ secrets.GOOGLE_CLUSTER_ZONE }} \
+          --region ${{ secrets.GOOGLE_REGION }} \
           --project ${{ secrets.GOOGLE_PROJECT_ID }}
 
     - name: Terraform Init
