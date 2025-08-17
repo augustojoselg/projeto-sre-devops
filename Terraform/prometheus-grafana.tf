@@ -2,196 +2,27 @@
 # Este arquivo configura o stack de monitoramento completo
 
 # 1. Namespace para monitoramento
-data "kubernetes_namespace" "monitoring" {
-  metadata {
-    name = "monitoring"
-  }
-}
-
 resource "kubernetes_namespace" "monitoring" {
-  count = data.kubernetes_namespace.monitoring.metadata[0].name == "monitoring" ? 0 : 1
   metadata {
     name = "monitoring"
   }
 }
 
-# 2. Helm Release para Prometheus Stack (Kube-Prometheus)
+# 2. Instalação do Prometheus Community Stack via Helm
 resource "helm_release" "prometheus_stack" {
-  name       = "prometheus"
+  name       = "prometheus-stack"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  version    = "54.2.0" # Versão mais estável
+  version    = "51.3.0" # Versão estável
 
-  # Configurações de timeout e retry
-  timeout = 600
-  wait    = true
-
-  # Configurações de retry para problemas de conectividade
-  max_history   = 0
-  force_update  = false
-  recreate_pods = false
-
-  # Configurações de dependências
-  depends_on = [
-    kubernetes_namespace.monitoring,
-    google_container_cluster.primary
+  values = [
+    "${file("${path.module}/prometheus-values.yaml")}"
   ]
 
-  # Configurações do Prometheus
-  set {
-    name  = "prometheus.prometheusSpec.retention"
-    value = "30d" # Retenção de 30 dias
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage"
-    value = "50Gi" # 50GB de storage
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName"
-    value = "standard" # Classe de storage padrão do GKE
-  }
-
-  # Configurações do Grafana
-  set {
-    name  = "grafana.adminPassword"
-    value = "admin123" # Senha padrão - alterar em produção
-  }
-
-  set {
-    name  = "grafana.persistence.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "grafana.persistence.size"
-    value = "10Gi"
-  }
-
-  # Configurações do AlertManager
-  set {
-    name  = "alertmanager.alertmanagerSpec.retention"
-    value = "120h" # 5 dias de retenção
-  }
-
-  set {
-    name  = "alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage"
-    value = "10Gi"
-  }
-
-  # Configurações de recursos
-  set {
-    name  = "prometheus.prometheusSpec.resources.requests.memory"
-    value = "2Gi"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.resources.requests.cpu"
-    value = "500m"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.resources.limits.memory"
-    value = "4Gi"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.resources.limits.cpu"
-    value = "1000m"
-  }
-
-  set {
-    name  = "grafana.resources.requests.memory"
-    value = "256Mi"
-  }
-
-  set {
-    name  = "grafana.resources.requests.cpu"
-    value = "100m"
-  }
-
-  set {
-    name  = "grafana.resources.limits.memory"
-    value = "512Mi"
-  }
-
-  set {
-    name  = "grafana.resources.limits.cpu"
-    value = "200m"
-  }
-
-  # Configurações de segurança
-  set {
-    name  = "prometheus.prometheusSpec.podSecurityContext.runAsNonRoot"
-    value = "true"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.podSecurityContext.runAsUser"
-    value = "65534" # nobody
-  }
-
-  set {
-    name  = "grafana.podSecurityContext.runAsNonRoot"
-    value = "true"
-  }
-
-  set {
-    name  = "grafana.podSecurityContext.runAsUser"
-    value = "65534" # nobody
-  }
-
-  # Configurações de rede
-  set {
-    name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
-    value = "false"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues"
-    value = "false"
-  }
-
-  # Configurações de scraping
-  # Configuração de scraping temporariamente removida para resolver problemas de sintaxe
-  # set {
-  #   name  = "prometheus.prometheusSpec.additionalScrapeConfigs[0]"
-  #   value = <<-EOT
-  # - job_name: 'kubernetes-pods'
-  #   kubernetes_sd_configs:
-  #   - role: pod
-  #   relabel_configs:
-  #   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-  #     action: keep
-  #     regex: true
-  #   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-  #     action: replace
-  #     target_label: __metrics_path__
-  #     regex: (.+)
-  #   - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-  #     action: replace
-  #     regex: ([^:]+)(?::\d+)?;(\d+)
-  #     replacement: $1:$2
-  #     target_label: __address__
-  #   - action: labelmap
-  #     regex: __meta_kubernetes_pod_label_(.+)
-  #   - source_labels: [__meta_kubernetes_namespace]
-  #     action: replace
-  #     target_label: kubernetes_namespace
-  #   - source_labels: [__meta_kubernetes_pod_name]
-  #     action: replace
-  #     target_label: kubernetes_pod_name
-  # EOT
-  # }
-
-  # Lifecycle para evitar destruição acidental
-
-  # Lifecycle para evitar destruição acidental
-  lifecycle {
-    prevent_destroy = false
-  }
+  depends_on = [
+    kubernetes_namespace.monitoring
+  ]
 }
 
 # 3. Service para acesso ao Grafana
