@@ -49,18 +49,29 @@ jobs:
           --region ${{ secrets.GOOGLE_REGION }} \
           --project ${{ secrets.GOOGLE_PROJECT_ID }}
 
+    - name: Export kubeconfig for Terraform
+      run: |
+        export KUBECONFIG="$HOME/.kube/config"
+        echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
+        echo "KUBE_CONFIG_PATH=$KUBECONFIG" >> $GITHUB_ENV
+
     - name: Terraform Init
       working-directory: ./Terraform
       run: terraform init
+      env:
+        KUBECONFIG: ${{ env.KUBECONFIG }}
 
     - name: Terraform Format Check
       working-directory: ./Terraform
       run: terraform fmt -check
+      env:
+        KUBECONFIG: ${{ env.KUBECONFIG }}
 
     - name: Terraform Plan
       working-directory: ./Terraform
       run: terraform plan -out=tfplan
       env:
+        KUBECONFIG: ${{ env.KUBECONFIG }}
         TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
         TF_VAR_region: ${{ secrets.GOOGLE_REGION }}
         TF_VAR_zone: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
@@ -70,6 +81,7 @@ jobs:
       working-directory: ./Terraform
       run: terraform apply -auto-approve tfplan
       env:
+        KUBECONFIG: ${{ env.KUBECONFIG }}
         TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
         TF_VAR_region: ${{ secrets.GOOGLE_REGION }}
         TF_VAR_zone: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
