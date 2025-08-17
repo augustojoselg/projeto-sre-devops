@@ -404,7 +404,7 @@ resource "google_compute_security_policy" "security_policy" {
 
 # Usar Security Policy existente ou criada
 locals {
-  security_policy_id = data.google_compute_security_policy.security_policy.name == "security-policy" ? data.google_compute_security_policy.security_policy.id : google_compute_security_policy.security_policy[0].id
+  security_policy_id = google_compute_security_policy.security_policy.id
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
@@ -632,7 +632,7 @@ resource "google_compute_instance_template" "default" {
   }
 
   network_interface {
-    network    = google_compute_network.vpc.id
+    network    = local.vpc_id
     subnetwork = google_compute_subnetwork.subnet.id
 
     access_config {
