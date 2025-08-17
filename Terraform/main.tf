@@ -53,16 +53,19 @@ resource "google_compute_network" "vpc" {
   }
 }
 
-# Usar VPC existente ou criada
-locals {
-  vpc_id = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
+# Verificar se a subnet já existe
+data "google_compute_subnetwork" "existing_subnet" {
+  name   = "${var.project_id}-subnet"
+  region = var.region
 }
 
+# Fallback para criar subnet se não existir
 resource "google_compute_subnetwork" "subnet" {
-  name          = "${var.project_id}-subnet"
-  ip_cidr_range = var.subnet_cidr
-  network       = local.vpc_id
-  region        = var.region
+  count          = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? 0 : 1
+  name           = "${var.project_id}-subnet"
+  ip_cidr_range  = var.subnet_cidr
+  network        = local.vpc_id
+  region         = var.region
 
   # Habilitar logs de fluxo para monitoramento
   log_config {
@@ -72,6 +75,12 @@ resource "google_compute_subnetwork" "subnet" {
   }
 
   depends_on = [google_project_service.compute]
+}
+
+# Usar VPC existente ou criada
+locals {
+  vpc_id = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
+  subnet_id = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.id : google_compute_subnetwork.subnet[0].id
 }
 
 # Cluster GKE com configurações otimizadas
@@ -85,7 +94,7 @@ resource "google_container_cluster" "primary" {
 
   # Configuração de rede
   network    = local.vpc_id
-  subnetwork = google_compute_subnetwork.subnet.name
+  subnetwork = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.name : google_compute_subnetwork.subnet[0].name
 
   # Configuração de IP para pods e serviços
   ip_allocation_policy {
@@ -248,7 +257,14 @@ resource "google_project_iam_member" "gke_node_worker" {
 }
 
 # 6. Firewall para o cluster
+# Verificar se o firewall master já existe
+data "google_compute_firewall" "existing_gke_master" {
+  name = "gke-master-${var.project_id}"
+}
+
+# Fallback para criar firewall master se não existir
 resource "google_compute_firewall" "gke_master" {
+  count   = data.google_compute_firewall.existing_gke_master.name == "gke-master-${var.project_id}" ? 0 : 1
   name    = "gke-master-${var.project_id}"
   network = local.vpc_id
 
@@ -261,7 +277,14 @@ resource "google_compute_firewall" "gke_master" {
   target_tags   = ["gke-master"]
 }
 
+# Verificar se o firewall nodes já existe
+data "google_compute_firewall" "existing_gke_nodes" {
+  name = "gke-nodes-${var.project_id}"
+}
+
+# Fallback para criar firewall nodes se não existir
 resource "google_compute_firewall" "gke_nodes" {
+  count   = data.google_compute_firewall.existing_gke_nodes.name == "gke-nodes-${var.project_id}" ? 0 : 1
   name    = "gke-nodes-${var.project_id}"
   network = local.vpc_id
 
@@ -280,15 +303,32 @@ resource "google_compute_firewall" "gke_nodes" {
 }
 
 # 7. Cloud NAT para nós privados
+# Verificar se o router já existe
+data "google_compute_router" "existing_router" {
+  name   = "${var.project_id}-router"
+  region = var.region
+}
+
+# Fallback para criar router se não existir
 resource "google_compute_router" "router" {
+  count   = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? 0 : 1
   name    = "${var.project_id}-router"
   region  = var.region
   network = local.vpc_id
 }
 
+# Verificar se o NAT já existe
+data "google_compute_router_nat" "existing_nat" {
+  name   = "${var.project_id}-nat"
+  router = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
+  region = var.region
+}
+
+# Fallback para criar NAT se não existir
 resource "google_compute_router_nat" "nat" {
+  count                               = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
   name                               = "${var.project_id}-nat"
-  router                             = google_compute_router.router.name
+  router                             = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
@@ -410,15 +450,8 @@ locals {
 }
 
 # 15. Cloud KMS para criptografia (REUTILIZÁVEL)
-# Verificar se o Key Ring já existe
-data "google_kms_key_ring" "existing_keyring" {
-  name     = "gke-keyring"
-  location = var.region
-}
-
 # Fallback para criar Key Ring se não existir
 resource "google_kms_key_ring" "keyring" {
-  count    = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
 
@@ -428,17 +461,10 @@ resource "google_kms_key_ring" "keyring" {
   }
 }
 
-# Verificar se o Crypto Key já existe
-data "google_kms_crypto_key" "existing_key" {
-  name     = "gke-key"
-  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
-}
-
 # Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  count    = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
-  name     = "gke-key"
-  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
+  name      = "gke-key"
+  key_ring  = google_kms_key_ring.keyring.id
 
   lifecycle {
     prevent_destroy       = true
@@ -446,9 +472,9 @@ resource "google_kms_crypto_key" "key" {
   }
 }
 
-# Usar Crypto Key existente ou criado
+# Usar Crypto Key criado
 locals {
-  crypto_key_id = data.google_kms_crypto_key.existing_key.name == "gke-key" ? data.google_kms_crypto_key.existing_key.id : google_kms_crypto_key.key[0].id
+  crypto_key_id = google_kms_crypto_key.key.id
 }
 
 # 16. IAM para Cloud KMS
@@ -711,15 +737,9 @@ resource "kubernetes_ingress_v1" "whoami_app" {
 # }
 
 # 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
-# Verificar se o Health Check já existe
-data "google_compute_health_check" "existing_health_check" {
-  name = "health-check"
-}
-
 # Fallback para criar Health Check se não existir
 resource "google_compute_health_check" "default" {
-  count = data.google_compute_health_check.existing_health_check.name == "health-check" ? 0 : 1
-  name  = "health-check"
+  name = "health-check"
 
   http_health_check {
     port = 8000
@@ -731,7 +751,6 @@ resource "google_compute_health_check" "default" {
   }
 }
 
-# Verificar se o SSL Certificate já existe
 # Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "managed-ssl-certificate"
@@ -746,7 +765,6 @@ resource "google_compute_managed_ssl_certificate" "default" {
   }
 }
 
-# Verificar se o DNS Zone já existe
 # Fallback para criar DNS Zone se não existir
 resource "google_dns_managed_zone" "default" {
   name        = "default-zone"
