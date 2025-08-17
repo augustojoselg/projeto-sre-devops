@@ -14,7 +14,7 @@ resource "google_storage_bucket" "vault_storage" {
 # O Key Ring já foi criado em main.tf, vamos reutilizá-lo.
 resource "google_kms_crypto_key" "vault_unseal" {
   name     = "vault-unseal-key"
-  key_ring = google_kms_key_ring.keyring.id
+  key_ring = google_kms_key_ring.keyring[0].id
   purpose  = "ENCRYPT_DECRYPT"
 }
 
@@ -30,14 +30,14 @@ resource "google_service_account" "vault" {
 resource "google_storage_bucket_iam_member" "vault_storage_access" {
   bucket = google_storage_bucket.vault_storage.name
   role   = "roles/storage.objectAdmin"
-  member = google_service_account.vault.iam_member
+  member = google_service_account.vault.member
 }
 
 # Permissão para usar a chave KMS
 resource "google_kms_crypto_key_iam_member" "vault_kms_access" {
   crypto_key_id = google_kms_crypto_key.vault_unseal.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member        = google_service_account.vault.iam_member
+  member        = google_service_account.vault.member
 }
 
 # 5. Vínculo entre a Conta de Serviço do Kubernetes (KSA) e a GSA do Google
