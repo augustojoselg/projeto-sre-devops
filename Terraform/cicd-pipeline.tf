@@ -4,8 +4,17 @@
 # Execute: terraform apply para criar apenas a infraestrutura básica
 # Depois: Descomente este arquivo e execute novamente para criar os recursos Kubernetes
 
-# 1. Cloud Build Trigger para aplicação principal
+# Verifica se o trigger já existe
+data "google_cloudbuild_trigger" "existing_app_trigger" {
+  project    = var.project_id
+  trigger_id = "app-build-trigger"
+  location   = "global"
+}
+
+# Cria o trigger apenas se ele não existir
 resource "google_cloudbuild_trigger" "app_trigger" {
+  count = data.google_cloudbuild_trigger.existing_app_trigger.id == "" ? 1 : 0
+
   name        = "app-build-trigger"
   description = "Trigger para build e deploy de aplicações"
   project     = var.project_id

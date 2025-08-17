@@ -3,42 +3,35 @@ provider "google" {
   region  = var.region
 }
 
-# 1️⃣ Criar Service Account
+# Verifica se a conta de serviço já existe
+data "google_service_account" "existing_devops_sa" {
+  account_id = "devops-sre"
+  project    = var.project_id
+}
+
+# Cria a conta de serviço apenas se ela não existir
 resource "google_service_account" "devops" {
+  count = data.google_service_account.existing_devops_sa.email == "" ? 1 : 0
+
+  project      = var.project_id
   account_id   = "devops-sre"
   display_name = "Service Account DevOps"
+  description  = "Conta de serviço para pipeline CI/CD e acesso ao GKE"
 }
 
-# 2️⃣ Papéis (roles) necessários
-locals {
-  devops_roles = [
-    "roles/viewer",
-    "roles/editor",
-    "roles/compute.networkAdmin",
-    "roles/compute.admin",
-    "roles/storage.admin",
+# Associa papéis IAM à conta de serviço
+resource "google_project_iam_member" "devops_roles" {
+  for_each = toset([
     "roles/container.admin",
-    "roles/cloudsql.admin",
-    "roles/iam.serviceAccountAdmin",    # opcional
-    "roles/iam.serviceAccountKeyAdmin",  # opcional
-    "roles/iam.serviceAccountUser",      # opcional
-    # Permissões específicas para APIs
-    "roles/cloudbuild.builds.builder",   # Cloud Build
-    "roles/run.developer",               # Cloud Run
-    "roles/cloudkms.cryptoKeyEncrypterDecrypter", # Cloud KMS
-    "roles/dns.admin",                   # Cloud DNS
-    "roles/monitoring.admin",            # Cloud Monitoring
-    "roles/logging.admin",               # Cloud Logging
-    "roles/resourcemanager.projectIamAdmin" # Resource Manager
-  ]
-}
+    "roles/storage.admin",
+    "roles/cloudbuild.builds.editor",
+    "roles/iam.serviceAccountUser",
+    "roles/cloudkms.admin"
+  ])
 
-# 3️⃣ Atribuir permissões à conta de serviço
-resource "google_project_iam_member" "devops_bindings" {
-  for_each = toset(local.devops_roles)
-  project  = var.project_id
-  role     = each.value
-  member   = "serviceAccount:${google_service_account.devops.email}"
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${data.google_service_account.existing_devops_sa.email != "" ? data.google_service_account.existing_devops_sa.email : google_service_account.devops[0].email}"
 }
 
 # 4️⃣ Gerar chave JSON

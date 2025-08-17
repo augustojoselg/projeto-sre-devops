@@ -153,8 +153,18 @@ resource "kubernetes_deployment" "sre_whoami" {
   }
 }
 
-# 5. Service para DevOps
+# --- DEVOPS ---
+# Verifica se o serviço já existe
+data "kubernetes_service" "existing_devops_service" {
+  metadata {
+    name      = "devops-whoami-service"
+    namespace = "devops"
+  }
+}
+
 resource "kubernetes_service" "devops_whoami_service" {
+  count = data.kubernetes_service.existing_devops_service.id == "" ? 1 : 0
+
   metadata {
     name      = "devops-whoami-service"
     namespace = data.kubernetes_namespace.devops.metadata[0].name
@@ -177,8 +187,18 @@ resource "kubernetes_service" "devops_whoami_service" {
   depends_on = [kubernetes_deployment.devops_whoami]
 }
 
-# 6. Service para SRE
+# --- SRE ---
+# Verifica se o serviço já existe
+data "kubernetes_service" "existing_sre_service" {
+  metadata {
+    name      = "sre-whoami-service"
+    namespace = "sre"
+  }
+}
+
 resource "kubernetes_service" "sre_whoami_service" {
+  count = data.kubernetes_service.existing_sre_service.id == "" ? 1 : 0
+
   metadata {
     name      = "sre-whoami-service"
     namespace = data.kubernetes_namespace.sre.metadata[0].name
