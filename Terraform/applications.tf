@@ -36,6 +36,11 @@ resource "kubernetes_deployment" "devops_whoami" {
 
     template {
       metadata {
+        annotations = {
+          "vault.hashicorp.com/agent-inject"                        = "true"
+          "vault.hashicorp.com/role"                                = "devops-app"
+          "vault.hashicorp.com/agent-inject-secret-credentials.txt" = "secret/data/devops-app"
+        }
         labels = {
           app = "devops-whoami"
         }
@@ -105,6 +110,11 @@ resource "kubernetes_deployment" "sre_whoami" {
 
     template {
       metadata {
+        annotations = {
+          "vault.hashicorp.com/agent-inject"                        = "true"
+          "vault.hashicorp.com/role"                                = "sre-app"
+          "vault.hashicorp.com/agent-inject-secret-credentials.txt" = "secret/data/sre-app"
+        }
         labels = {
           app = "sre-whoami"
         }
