@@ -794,11 +794,6 @@ resource "google_compute_health_check" "default" {
   }
 }
 
-# Verificar se o SSL Certificate já existe
-data "google_compute_managed_ssl_certificate" "existing_ssl_cert" {
-  name = "managed-ssl-certificate"
-}
-
 # Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "managed-ssl-certificate"
