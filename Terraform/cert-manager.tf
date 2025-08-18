@@ -1,8 +1,40 @@
 # Cert-Manager para SSL Automático
-# Este arquivo configura o cert-manager e ClusterIssuer para Let's Encrypt
+# Este arquivo instala o cert-manager e configura os ClusterIssuers
 
-# 1. ClusterIssuer para Let's Encrypt (Produção)
+# 1. Instalar o cert-manager via Helm
+resource "helm_release" "cert_manager" {
+  name       = "cert-manager"
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
+  namespace  = "cert-manager"
+  create_namespace = true
+  version    = "v1.13.3"
+
+  # Aguardar a instalação completa
+  wait    = true
+  timeout = 1200
+
+  # Dependências
+  depends_on = [
+    helm_release.ingress_nginx
+  ]
+
+  # Valores para instalação
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+
+  set {
+    name  = "global.leaderElection.namespace"
+    value = "cert-manager"
+  }
+}
+
+# 2. ClusterIssuer para Let's Encrypt (Produção)
 resource "kubernetes_manifest" "letsencrypt_prod_cluster_issuer" {
+  depends_on = [helm_release.cert_manager]
+
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
@@ -28,12 +60,12 @@ resource "kubernetes_manifest" "letsencrypt_prod_cluster_issuer" {
       }
     }
   }
-
-  depends_on = [google_container_cluster.primary]
 }
 
-# 2. ClusterIssuer para Let's Encrypt (Staging - para testes)
+# 3. ClusterIssuer para Let's Encrypt (Staging - para testes)
 resource "kubernetes_manifest" "letsencrypt_staging_cluster_issuer" {
+  depends_on = [helm_release.cert_manager]
+
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
@@ -59,12 +91,20 @@ resource "kubernetes_manifest" "letsencrypt_staging_cluster_issuer" {
       }
     }
   }
-
-  depends_on = [google_container_cluster.primary]
 }
 
-# 3. Output para verificar o status dos ClusterIssuers
+# 4. Outputs para verificação
 output "cert_manager_status" {
   description = "Status do cert-manager"
-  value = "Cert-manager instalado e configurado com ClusterIssuers para Let's Encrypt"
+  value       = helm_release.cert_manager.status
+}
+
+output "cluster_issuer_prod_status" {
+  description = "Status do ClusterIssuer de produção"
+  value       = "configured"
+}
+
+output "cluster_issuer_staging_status" {
+  description = "Status do ClusterIssuer de staging"
+  value       = "configured"
 }

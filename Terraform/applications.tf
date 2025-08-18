@@ -220,8 +220,13 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
       "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
       "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
+      "nginx.ingress.kubernetes.io/ssl-passthrough"    = "false"
     }
   }
+
+  depends_on = [
+    kubernetes_manifest.letsencrypt_prod_cluster_issuer
+  ]
 
   spec {
     ingress_class_name = "nginx"
@@ -260,8 +265,13 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
       "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
       "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
+      "nginx.ingress.kubernetes.io/ssl-passthrough"    = "false"
     }
   }
+
+  depends_on = [
+    kubernetes_manifest.letsencrypt_prod_cluster_issuer
+  ]
 
   spec {
     ingress_class_name = "nginx"
