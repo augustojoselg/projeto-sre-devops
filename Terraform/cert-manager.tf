@@ -1,12 +1,14 @@
 # Cert-Manager e ClusterIssuer para Let's Encrypt
 # Este arquivo usa nosso chart Helm personalizado para instalação robusta
 
-# 1. Instalar o cert-manager via nosso chart personalizado
+# 1. Instalar o cert-manager via chart oficial do Helm
 resource "helm_release" "cert_manager" {
-  name             = "cert-manager"
-  chart            = "${path.module}/../Helm/cert-manager-chart"
-  namespace        = "cert-manager"
+  name       = "cert-manager"
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
+  namespace  = "cert-manager"
   create_namespace = true
+  version    = "v1.13.3"
 
   # Aguardar a instalação completa
   wait    = true
@@ -17,27 +19,56 @@ resource "helm_release" "cert_manager" {
     helm_release.ingress_nginx
   ]
 
-  # Valores personalizados
+  # Valores para instalação
   set {
-    name  = "clusterIssuer.email"
-    value = var.cert_manager_email
+    name  = "installCRDs"
+    value = "true"
   }
 
   set {
-    name  = "certManager.timeout"
-    value = "900"
+    name  = "global.leaderElection.namespace"
+    value = "cert-manager"
   }
 }
 
-# 2. Outputs simplificados para evitar problemas no CI/CD
+# 2. ClusterIssuer para Let's Encrypt (após cert-manager estar instalado)
+resource "kubectl_manifest" "cluster_issuer" {
+  depends_on = [helm_release.cert_manager]
+
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "ClusterIssuer"
+    metadata = {
+      name = "letsencrypt-prod"
+    }
+    spec = {
+      acme = {
+        server = "https://acme-v02.api.letsencrypt.org/directory"
+        email = var.cert_manager_email
+        privateKeySecretRef = {
+          name = "letsencrypt-prod"
+        }
+        solvers = [
+          {
+            http01 = {
+              ingress = {
+                class = "nginx"
+              }
+            }
+          }
+        ]
+      }
+    }
+  })
+}
+
+# 3. Outputs para verificação do status
 output "cert_manager_status" {
   description = "Status da instalação do cert-manager"
-  value       = "deployed"
-  depends_on  = [helm_release.cert_manager]
+  value       = helm_release.cert_manager.status
 }
 
 output "cluster_issuer_status" {
   description = "Status do ClusterIssuer"
-  value       = "configured"
-  depends_on  = [helm_release.cert_manager]
+  value       = kubectl_manifest.cluster_issuer.uid
 }
