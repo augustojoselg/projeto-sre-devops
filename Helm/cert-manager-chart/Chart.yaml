@@ -1,0 +1,17 @@
+apiVersion: v2
+name: cert-manager-chart
+description: Chart Helm personalizado para instalação do cert-manager
+type: application
+version: 0.1.0
+appVersion: "v1.13.3"
+keywords:
+  - cert-manager
+  - ssl
+  - tls
+  - lets-encrypt
+home: https://cert-manager.io/
+sources:
+  - https://github.com/cert-manager/cert-manager
+maintainers:
+  - name: DevOps Team
+    email: augustojoselg@gmail.com

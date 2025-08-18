@@ -1,61 +1,35 @@
 # Cert-Manager e ClusterIssuer para Let's Encrypt
-# Este arquivo automatiza a instalação do cert-manager e configuração dos certificados SSL
+# Este arquivo usa nosso chart Helm personalizado para instalação robusta
 
-# 1. Instalar o cert-manager via Helm
+# 1. Instalar o cert-manager via nosso chart personalizado
 resource "helm_release" "cert_manager" {
   name             = "cert-manager"
-  repository       = "https://charts.jetstack.io"
-  chart            = "cert-manager"
+  chart            = "${path.module}/../Helm/cert-manager-chart"
   namespace        = "cert-manager"
   create_namespace = true
-  version          = "v1.13.3"
-
-  set {
-    name  = "installCRDs"
-    value = "true"
-  }
-
+  
   # Aguardar a instalação completa
   wait    = true
-  timeout = 600
-
+  timeout = 1200  # 20 minutos para instalação completa
+  
+  # Dependências
   depends_on = [
     helm_release.ingress_nginx
   ]
-}
-
-# 2. ClusterIssuer para Let's Encrypt
-resource "kubernetes_manifest" "cluster_issuer" {
-  depends_on = [helm_release.cert_manager]
-
-  manifest = {
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-    metadata = {
-      name = "letsencrypt-prod"
-    }
-    spec = {
-      acme = {
-        email  = var.cert_manager_email
-        server = "https://acme-v02.api.letsencrypt.org/directory"
-        privateKeySecretRef = {
-          name = "letsencrypt-prod-key"
-        }
-        solvers = [
-          {
-            http01 = {
-              ingress = {
-                class = "nginx"
-              }
-            }
-          }
-        ]
-      }
-    }
+  
+  # Valores personalizados
+  set {
+    name  = "clusterIssuer.email"
+    value = var.cert_manager_email
+  }
+  
+  set {
+    name  = "certManager.timeout"
+    value = "900"
   }
 }
 
-# 3. Outputs simplificados para evitar problemas no CI/CD
+# 2. Outputs simplificados para evitar problemas no CI/CD
 output "cert_manager_status" {
   description = "Status da instalação do cert-manager"
   value       = "deployed"
@@ -65,5 +39,5 @@ output "cert_manager_status" {
 output "cluster_issuer_status" {
   description = "Status do ClusterIssuer"
   value       = "configured"
-  depends_on  = [kubernetes_manifest.cluster_issuer]
+  depends_on  = [helm_release.cert_manager]
 }

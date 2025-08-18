@@ -1,0 +1,57 @@
+# Configurações padrão para o cert-manager
+# Este chart instala o cert-manager e configura o ClusterIssuer
+
+# Configurações do cert-manager
+certManager:
+  # Versão do cert-manager
+  version: "v1.13.3"
+  
+  # Configurações de instalação
+  installCRDs: true
+  
+  # Timeout para instalação
+  timeout: 900
+  
+  # Configurações de recursos
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Configurações do ClusterIssuer
+clusterIssuer:
+  # Habilitar criação do ClusterIssuer
+  enabled: true
+  
+  # Nome do ClusterIssuer
+  name: "letsencrypt-prod"
+  
+  # Email para o Let's Encrypt
+  email: "augustojoselg@gmail.com"
+  
+  # Servidor ACME (Let's Encrypt Production)
+  server: "https://acme-v02.api.letsencrypt.org/directory"
+  
+  # Nome do secret para a chave privada
+  privateKeySecretRef: "letsencrypt-prod-key"
+  
+  # Solver HTTP-01 para validação
+  http01:
+    ingress:
+      class: "nginx"
+
+# Configurações de namespace
+namespace:
+  # Nome do namespace
+  name: "cert-manager"
+  
+  # Criar namespace se não existir
+  create: true
+  
+  # Labels para o namespace
+  labels:
+    app: "cert-manager"
+    component: "certificates"

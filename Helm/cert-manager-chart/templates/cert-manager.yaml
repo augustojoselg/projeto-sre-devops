@@ -1,0 +1,32 @@
+# Instalação do cert-manager via Helm dependency
+# Este template usa o chart oficial do Jetstack
+
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cert-manager
+  namespace: {{ .Values.namespace.name }}
+spec:
+  repo: https://charts.jetstack.io
+  chart: cert-manager
+  version: {{ .Values.certManager.version }}
+  targetNamespace: {{ .Values.namespace.name }}
+  
+  # Configurações específicas
+  valuesContent: |-
+    installCRDs: {{ .Values.certManager.installCRDs }}
+    
+    # Configurações de recursos
+    resources:
+      requests:
+        cpu: {{ .Values.certManager.resources.requests.cpu }}
+        memory: {{ .Values.certManager.resources.requests.memory }}
+      limits:
+        cpu: {{ .Values.certManager.resources.limits.cpu }}
+        memory: {{ .Values.certManager.resources.limits.memory }}
+    
+    # Timeout para instalação
+    timeout: {{ .Values.certManager.timeout }}
+    
+    # Aguardar instalação completa
+    wait: true
