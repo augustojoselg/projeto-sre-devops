@@ -1,7 +1,5 @@
 # Cert-Manager para SSL Automático
-# Versão simplificada para evitar problemas de parsing
 
-# 1. Instalar o cert-manager via Helm
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   repository = "https://charts.jetstack.io"
@@ -23,7 +21,6 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# 2. ClusterIssuer para Let's Encrypt (Produção)
 resource "kubernetes_manifest" "letsencrypt_prod_cluster_issuer" {
   depends_on = [helm_release.cert_manager]
 
@@ -54,7 +51,6 @@ resource "kubernetes_manifest" "letsencrypt_prod_cluster_issuer" {
   }
 }
 
-# 3. Outputs simples
 output "cert_manager_installed" {
   description = "Cert-manager instalado"
   value       = "true"
