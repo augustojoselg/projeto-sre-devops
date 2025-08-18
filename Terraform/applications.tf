@@ -224,10 +224,6 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
     }
   }
 
-  depends_on = [
-    kubernetes_manifest.letsencrypt_prod
-  ]
-
   spec {
     ingress_class_name = "nginx"
 
@@ -268,10 +264,6 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
       "nginx.ingress.kubernetes.io/ssl-passthrough"    = "false"
     }
   }
-
-  depends_on = [
-    kubernetes_manifest.letsencrypt_prod
-  ]
 
   spec {
     ingress_class_name = "nginx"
