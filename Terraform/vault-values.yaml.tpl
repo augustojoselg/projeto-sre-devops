@@ -6,7 +6,7 @@ global:
   # Habilita o TLS, essencial para produção
   tlsDisable: false
 
-# Configurações do servidor Vault
+# Configuração do servidor Vault
 server:
   # Desabilita o modo de desenvolvimento
   dev:
@@ -16,29 +16,31 @@ server:
   ha:
     enabled: true
     replicas: 3
-    # Configuração do backend GCS
-    config: |
-      ui = true
-      
-      storage "gcs" {
-        bucket     = "${vault_storage_bucket}"
-        ha_enabled = "true"
-      }
+    
+  # Configuração extra para o Vault
+  # É aqui que definimos o backend e o auto-unseal
+  extraConfig: |
+    ui = true
+    
+    storage "gcs" {
+      bucket     = "${vault_storage_bucket}"
+      ha_enabled = "true"
+    }
 
-      seal "gcpckms" {
-        project    = "${gcp_project_id}"
-        region     = "${gcp_region}"
-        key_ring   = "${kms_key_ring}"
-        crypto_key = "${kms_crypto_key}"
-      }
+    seal "gcpckms" {
+      project    = "${gcp_project_id}"
+      region     = "${gcp_region}"
+      key_ring   = "${kms_key_ring}"
+      crypto_key = "${kms_crypto_key}"
+    }
 
-      listener "tcp" {
-        address     = "0.0.0.0:8200"
-        cluster_address = "0.0.0.0:8201"
-        tls_disable = "false" # Usar o TLS gerenciado pelo Helm
-        tls_cert_file = "/vault/userconfig/vault-server-tls/vault.crt"
-        tls_key_file  = "/vault/userconfig/vault-server-tls/vault.key"
-      }
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      cluster_address = "0.0.0.0:8201"
+      tls_disable = "false"
+      tls_cert_file = "/vault/userconfig/vault-server-tls/vault.crt"
+      tls_key_file  = "/vault/userconfig/vault-server-tls/vault.key"
+    }
 
   # Anotações para vincular a KSA à GSA via Workload Identity
   serviceAccount:
