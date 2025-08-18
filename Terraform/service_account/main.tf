@@ -25,14 +25,3 @@ resource "google_project_iam_member" "devops_roles" {
   member  = "serviceAccount:${google_service_account.devops.email}"
 }
 
-# Gera chave para a conta de serviço
-resource "google_service_account_key" "devops_key" {
-  service_account_id = google_service_account.devops.name
-  public_key_type    = "TYPE_X509_PEM_FILE"
-}
-
-# Salvar chave localmente
-resource "local_file" "devops_key_file" {
-  content  = base64decode(google_service_account_key.devops_key.private_key)
-  filename = "${path.module}/devops-sre-key.json"
-}
