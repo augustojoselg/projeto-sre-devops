@@ -110,7 +110,8 @@ resource "google_container_cluster" "primary" {
       disabled = false
     }
     network_policy_config {
-      disabled = true # Desabilitado para compatibilidade
+      # Desabilitado para compatibilidade
+      disabled = true
     }
   }
 
@@ -217,7 +218,8 @@ resource "google_container_cluster" "primary" {
 
   # Lifecycle para evitar destruição acidental
   lifecycle {
-    prevent_destroy = true # Impede a destruição acidental do cluster
+    # Impede a destruição acidental do cluster
+    prevent_destroy = true
     ignore_changes = [
       node_pool[0].node_config[0].resource_labels,
       node_pool[0].node_config[0].kubelet_config

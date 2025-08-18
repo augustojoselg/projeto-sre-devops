@@ -30,11 +30,16 @@ resource "google_project_iam_member" "devops_api_access" {
 # 2. Conta GKE Node - Acesso específico para operações do cluster
 resource "google_project_iam_member" "gke_node_api_access" {
   for_each = toset([
-    "compute.googleapis.com",   # Para criar/gerenciar VMs
-    "container.googleapis.com", # Para operações GKE
-    "storage.googleapis.com",   # Para pull de imagens
-    "logging.googleapis.com",   # Para logs do cluster
-    "monitoring.googleapis.com" # Para métricas do cluster
+    # Para criar/gerenciar VMs
+    "compute.googleapis.com",
+    # Para operações GKE
+    "container.googleapis.com",
+    # Para pull de imagens
+    "storage.googleapis.com",
+    # Para logs do cluster
+    "logging.googleapis.com",
+    # Para métricas do cluster
+    "monitoring.googleapis.com"
   ])
 
   project = var.project_id

@@ -37,31 +37,36 @@ variable "services_cidr" {
 variable "node_locations" {
   description = "Localizações dos nós para alta disponibilidade"
   type        = list(string)
-  default     = ["us-west1-a", "us-west1-b", "us-west1-c"] # Usando as 3 zonas
+  # Usando as 3 zonas
+  default = ["us-west1-a", "us-west1-b", "us-west1-c"]
 }
 
 variable "node_count" {
   description = "Número inicial de nós por zona"
   type        = number
-  default     = 1 # 1 nó por zona = 3 nós no total
+  # 1 nó por zona = 3 nós no total
+  default = 1
 }
 
 variable "min_node_count" {
   description = "Número mínimo de nós por zona"
   type        = number
-  default     = 1 # 1 nó por zona
+  # 1 nó por zona
+  default = 1
 }
 
 variable "max_node_count" {
   description = "Número máximo de nós por zona"
   type        = number
-  default     = 1 # 1 nó por zona, efetivamente desativa o autoscaling para cima
+  # 1 nó por zona, efetivamente desativa o autoscaling para cima
+  default = 1
 }
 
 variable "machine_type" {
   description = "Tipo de máquina para os nós"
   type        = string
-  default     = "e2-standard-2" # Restaurado para e2-standard-2
+  # Restaurado para e2-standard-2
+  default = "e2-standard-2"
 }
 
 variable "disk_size_gb" {
@@ -151,14 +156,16 @@ variable "email_smtp_port" {
 variable "email_username" {
   description = "Usuário para autenticação SMTP"
   type        = string
-  default     = "" # Configurar via variável de ambiente
+  # Configurar via variável de ambiente
+  default = ""
 }
 
 variable "email_password" {
   description = "Senha para autenticação SMTP"
   type        = string
-  default     = "" # Configurar via variável de ambiente
-  sensitive   = true
+  # Configurar via variável de ambiente
+  default   = ""
+  sensitive = true
 }
 
 variable "discord_webhook_url" {

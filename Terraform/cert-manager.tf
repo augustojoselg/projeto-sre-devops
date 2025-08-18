@@ -7,22 +7,22 @@ resource "helm_release" "cert_manager" {
   chart            = "${path.module}/../Helm/cert-manager-chart"
   namespace        = "cert-manager"
   create_namespace = true
-  
+
   # Aguardar a instalação completa
   wait    = true
-  timeout = 1200  # 20 minutos para instalação completa
-  
+  timeout = 1200
+
   # Dependências
   depends_on = [
     helm_release.ingress_nginx
   ]
-  
+
   # Valores personalizados
   set {
     name  = "clusterIssuer.email"
     value = var.cert_manager_email
   }
-  
+
   set {
     name  = "certManager.timeout"
     value = "900"
