@@ -242,7 +242,7 @@
 #           
 #           env {
 #             name  = "DOCKER_INFLUXDB_INIT_PASSWORD"
-#             value = "admin123"
+#             value = var.influxdb_password
 #           }
 #           
 #           env {

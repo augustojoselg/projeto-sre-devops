@@ -282,8 +282,8 @@ output "alertmanager_url" {
 output "monitoring_credentials" {
   description = "Credenciais de acesso ao Grafana"
   value = {
-    username = "admin"
-    password = "admin123"
+    username = var.grafana_username
+    password = var.grafana_password
     url      = "http://${kubernetes_service.grafana_external.status[0].load_balancer[0].ingress[0].ip}"
   }
   depends_on = [kubernetes_service.grafana_external]

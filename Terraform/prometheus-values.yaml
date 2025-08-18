@@ -32,7 +32,7 @@ prometheus:
 
 # Configurações do Grafana
 grafana:
-  adminPassword: "admin" # Troque por uma senha segura ou use um segredo!
+  adminPassword: "${GRAFANA_PASSWORD}" # Use variável de ambiente ou segredo
   persistence:
     enabled: true
     size: 10Gi

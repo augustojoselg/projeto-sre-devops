@@ -9,14 +9,14 @@ resource "helm_release" "cert_manager" {
   namespace        = "cert-manager"
   create_namespace = true
   version          = "v1.13.3"
-  
+
   set {
     name  = "installCRDs"
     value = "true"
   }
 
   # Aguardar a instalação completa
-  wait = true
+  wait    = true
   timeout = 600
 
   depends_on = [
@@ -36,7 +36,7 @@ resource "kubernetes_manifest" "cluster_issuer" {
     }
     spec = {
       acme = {
-        email = var.cert_manager_email
+        email  = var.cert_manager_email
         server = "https://acme-v02.api.letsencrypt.org/directory"
         privateKeySecretRef = {
           name = "letsencrypt-prod-key"

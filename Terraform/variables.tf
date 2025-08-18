@@ -106,6 +106,24 @@ variable "cert_manager_email" {
   default     = "augustojoselg@gmail.com"
 }
 
+variable "grafana_username" {
+  description = "Usuário padrão do Grafana"
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_password" {
+  description = "Senha padrão do Grafana (configurar via GitHub Secrets)"
+  type        = string
+  sensitive   = true
+}
+
+variable "influxdb_password" {
+  description = "Senha padrão do InfluxDB (configurar via GitHub Secrets)"
+  type        = string
+  sensitive   = true
+}
+
 variable "github_owner" {
   description = "Proprietário do repositório GitHub"
   type        = string
