@@ -88,6 +88,10 @@ resource "google_container_cluster" "primary" {
   # Redes autorizadas para acesso ao master
   master_authorized_networks_config {
     cidr_blocks {
+      cidr_block   = "0.0.0.0/0"
+      display_name = "Allow all for CI/CD"
+    }
+    cidr_blocks {
       cidr_block   = "104.28.0.0/16"
       display_name = "Cloudflare IP Range"
     }
