@@ -225,7 +225,7 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
   }
 
   depends_on = [
-    kubernetes_manifest.letsencrypt_prod_cluster_issuer
+    kubernetes_manifest.letsencrypt_prod
   ]
 
   spec {
@@ -270,7 +270,7 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
   }
 
   depends_on = [
-    kubernetes_manifest.letsencrypt_prod_cluster_issuer
+    kubernetes_manifest.letsencrypt_prod
   ]
 
   spec {
