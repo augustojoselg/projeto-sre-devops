@@ -14,7 +14,7 @@ resource "google_storage_bucket" "vault_storage" {
 # O Key Ring já foi criado em main.tf, vamos reutilizá-lo.
 resource "google_kms_crypto_key" "vault_unseal" {
   name     = "vault-unseal-key"
-  key_ring = google_kms_key_ring.keyring[0].id
+  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
   purpose  = "ENCRYPT_DECRYPT"
 }
 

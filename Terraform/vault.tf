@@ -19,7 +19,7 @@ resource "helm_release" "vault" {
       gcp_project_id       = var.project_id
       gcp_region           = var.region
       vault_storage_bucket = google_storage_bucket.vault_storage.name
-      kms_key_ring         = google_kms_key_ring.keyring[0].name
+      kms_key_ring         = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.name : google_kms_key_ring.keyring[0].name
       kms_crypto_key       = google_kms_crypto_key.vault_unseal.name
       vault_gcp_sa_email   = google_service_account.vault.email
     })
