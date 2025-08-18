@@ -1,6 +1,18 @@
-# 📋 Instalação do Cert-Manager via kubectl
+# 📋 Instalação do Cert-Manager
 
-## 🚀 Como instalar o cert-manager
+## 🚀 Opção 1: Instalação Automática via CI/CD (Recomendado)
+
+O projeto já possui um workflow do GitHub Actions que instala automaticamente o cert-manager após o `terraform apply`.
+
+### **Para usar a CI/CD automática:**
+1. Configure os secrets necessários (veja `.github/workflows/README.md`)
+2. Faça push para a branch `main`
+3. O workflow executará automaticamente
+4. Cert-manager será instalado e configurado
+
+---
+
+## 🚀 Opção 2: Instalação Manual via kubectl
 
 ### 1. Instalar o cert-manager
 ```bash
