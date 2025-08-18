@@ -70,5 +70,6 @@ output "cert_manager_status" {
 
 output "cluster_issuer_status" {
   description = "Status do ClusterIssuer"
-  value       = kubernetes_manifest.cluster_issuer.uid
+  value       = "configured"
+  depends_on  = [kubernetes_manifest.cluster_issuer]
 }
