@@ -279,13 +279,6 @@ output "alertmanager_url" {
   depends_on  = [kubernetes_service.alertmanager_external]
 }
 
-output "monitoring_credentials" {
-  description = "Credenciais de acesso ao Grafana"
-  value = {
-    username = var.grafana_username
-    password = var.grafana_password
-    url      = "http://${kubernetes_service.grafana_external.status[0].load_balancer[0].ingress[0].ip}"
-  }
-  depends_on = [kubernetes_service.grafana_external]
-  sensitive  = true
-}
+# Output removido para evitar problemas no CI/CD
+# As credenciais são configuradas via GitHub Secrets
+# Para acessar o Grafana, use as credenciais configuradas nos secrets
