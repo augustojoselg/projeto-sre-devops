@@ -12,6 +12,10 @@ on:
       - 'Terraform/**'
       - '.github/workflows/terraform.yml'
 
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
 env:
   GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
   GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
