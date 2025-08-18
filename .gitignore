@@ -1,221 +1,25 @@
-# =============================================================================
-# GITIGNORE PARA PROJETO SRE-DEVOPS - INFRAESTRUTURA TERRAFORM/KUBERNETES
-# =============================================================================
-
-# =============================================================================
-# TERRAFORM
-# =============================================================================
-# Arquivos de estado e lock
+# Terraform state files
 *.tfstate
 *.tfstate.*
-*.tfstate.backup
-*.tfstate.local
+
+# Terraform plan files
+*.tfplan
+plan.out
+
+# Terraform crash log
+crash.log
+
+# Terraform provider lock files
 .terraform.lock.hcl
 
-# Diretório de inicialização do Terraform
-.terraform/
-.terraform.lock.hcl
-
-# Arquivos de variáveis com valores sensíveis
+# Local Terraform configuration files
 *.tfvars
 *.tfvars.json
-terraform.tfvars
-terraform.tfvars.*
-!*.tfvars.example
 
-# Arquivos de plano
-*.tfplan
-*.tfplan.json
-plan.out
+# Kubernetes secrets (se algum for salvo localmente)
+secrets.yaml
+secrets.yml
 
-# Logs do Terraform
-terraform.log
-*.log
-
-# =============================================================================
-# GOOGLE CLOUD PLATFORM (GCP)
-# =============================================================================
-# Chaves de service account
+# GCP/Cloud credentials
 *.json
-mythical-maxim-399820-8c8bbee5bd34.json
-*-key.json
-*-sa-key.json
-service-account-*.json
-service_account/*.json
-
-# Arquivos de credenciais
-gcloud/
-.gcloud/
-application_default_credentials.json
-
-# =============================================================================
-# KUBERNETES
-# =============================================================================
-# Configurações locais do kubectl
-.kube/
-kubeconfig
-*.kubeconfig
-
-# Secrets e configurações sensíveis
-*-secret.yaml
-*-secret.yml
-secrets/
-.env
-.env.*
-
-# =============================================================================
-# HELM
-# =============================================================================
-# Charts e releases
-charts/
-releases/
-*.tgz
-*.tar.gz
-
-# =============================================================================
-# CLOUD BUILD & CI/CD
-# =============================================================================
-# Arquivos de build
-build/
-dist/
-*.zip
-functions/*.zip
-
-# Logs de CI/CD
-*.log
-logs/
-build.log
-
-# =============================================================================
-# DESENVOLVIMENTO LOCAL
-# =============================================================================
-# IDEs e editores
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Sistema operacional
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-desktop.ini
-
-# =============================================================================
-# PYTHON (se houver scripts)
-# =============================================================================
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# =============================================================================
-# NODE.JS (se houver aplicações)
-# =============================================================================
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm
-.yarn-integrity
-
-# =============================================================================
-# BACKUP E TEMPORÁRIOS
-# =============================================================================
-# Arquivos de backup
-*.bak
-*.backup
-*.tmp
-*.temp
-
-# Arquivos temporários
-temp/
-tmp/
-.tmp/
-
-# =============================================================================
-# MONITORAMENTO E LOGS
-# =============================================================================
-# Arquivos de log
-*.log
-logs/
-log/
-
-# Métricas e dados de monitoramento
-metrics/
-prometheus-data/
-grafana-data/
-
-# =============================================================================
-# SEGURANÇA
-# =============================================================================
-# Arquivos com credenciais
 credentials/
-secrets/
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-
-# =============================================================================
-# AMBIENTE ESPECÍFICO
-# =============================================================================
-# Configurações de ambiente
-.env.local
-.env.development
-.env.production
-.env.staging
-
-# =============================================================================
-# OUTROS
-# =============================================================================
-# Arquivos de cache
-.cache/
-cache/
-
-# Arquivos de lock
-*.lock
-package-lock.json
-yarn.lock
-
-# Arquivos de configuração local
-config.local.*
-settings.local.*
-
-# =============================================================================
-# ARQUIVOS ESPECÍFICOS DO PROJETO
-# =============================================================================
-# Arquivos de certificados temporários
-letsencrypt-*.yaml
-cert-manager-*.yaml
-
-# Arquivos de configuração local
-kubeconfig
-.kubeconfig
-
-# Arquivos de estado do Terraform (já incluído acima, mas reforçando)
-terraform.tfstate*
-.terraform/
-
-# Arquivos de plano
-plan.out
-*.tfplan
-
-# Logs e outputs
-*.log
-outputs/

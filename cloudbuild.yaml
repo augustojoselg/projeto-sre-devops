@@ -1,94 +1,96 @@
 steps:
-  # Build e teste da infraestrutura
-  - name: 'hashicorp/terraform:1.0'
+  # Etapa 1: Validar e formatar o código Terraform
+  - name: 'hashicorp/terraform:1.5.7'
+    id: 'Format'
+    entrypoint: 'sh'
     args:
-      - init
-      - -input=false
+      - '-c'
+      - 'terraform fmt -check'
     dir: 'Terraform'
-    
-  - name: 'hashicorp/terraform:1.0'
+
+  - name: 'hashicorp/terraform:1.5.7'
+    id: 'Validate'
+    entrypoint: 'sh'
     args:
-      - plan
-      - -input=false
-      - -out=tfplan
+      - '-c'
+      - 'terraform init && terraform validate'
     dir: 'Terraform'
-    
-  - name: 'hashicorp/terraform:1.0'
+
+  # Etapa 2: Escanear manifestos Kubernetes com Trivy
+  - name: 'aquasec/trivy:latest'
+    id: 'Scan-Helm-Templates'
+    entrypoint: 'sh'
     args:
-      - apply
-      - -input=false
-      - tfplan
+      - '-c'
+      - |
+        helm template devops-release ./Helm/app-chart --values ./Helm/devops-values.yaml > devops.yaml
+        helm template sre-release ./Helm/app-chart --values ./Helm/sre-values.yaml > sre.yaml
+        trivy config --exit-code 1 --severity CRITICAL devops.yaml
+        trivy config --exit-code 1 --severity CRITICAL sre.yaml
+
+  # Etapa 3: Aplicar a infraestrutura com Terraform
+  - name: 'hashicorp/terraform:1.5.7'
+    id: 'Plan'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - 'terraform init && terraform plan -out=tfplan'
     dir: 'Terraform'
-    
-  # Deploy das aplicações DevOps
-  - name: 'gcr.io/cloud-builders/kubectl'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Apply'
+    entrypoint: 'sh'
     args:
-      - apply
-      - -f
-      - devops/
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-      
-  # Deploy das aplicações SRE
-  - name: 'gcr.io/cloud-builders/kubectl'
+      - '-c'
+      - 'terraform init && terraform apply -auto-approve tfplan'
+    dir: 'Terraform'
+
+  # Etapa 4: Configurar kubectl para o cluster
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Get-Credentials'
+    entrypoint: 'sh'
     args:
-      - apply
-      - -f
-      - sre/
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-      
-  # Deploy do monitoramento
+      - '-c'
+      - 'gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION}'
+
+  # Etapa 5: Deploy das aplicações com Helm
   - name: 'gcr.io/cloud-builders/helm'
+    id: 'Deploy-SRE-App'
+    entrypoint: 'sh'
     args:
-      - upgrade
-      - --install
-      - prometheus-stack
-      - prometheus-community/kube-prometheus-stack
-      - --namespace=monitoring
-      - --create-namespace
-      - --version=54.2.0
-      - --timeout=600s
-      - --wait
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-      
-  # Health check das aplicações
+      - '-c'
+      - |
+        helm upgrade --install sre-whoami ./Helm/app-chart \
+          --values ./Helm/sre-values.yaml \
+          --namespace sre --create-namespace \
+          --wait
+  
+  - name: 'gcr.io/cloud-builders/helm'
+    id: 'Deploy-DevOps-App'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        helm upgrade --install devops-whoami ./Helm/app-chart \
+          --values ./Helm/devops-values.yaml \
+          --namespace devops --create-namespace \
+          --wait
+
+  # Etapa 6: Health check das aplicações (opcional, mas recomendado)
   - name: 'curlimages/curl'
+    id: 'Health-Check-SRE'
+    entrypoint: 'sh'
     args:
-      - -f
-      - -k
-      - https://${_DEVOPS_DOMAIN}/
-    waitFor: ['-']
-    
+      - '-c'
+      - 'curl --fail --retry 5 --retry-delay 10 https://${_SRE_DOMAIN}/'
+
   - name: 'curlimages/curl'
+    id: 'Health-Check-DevOps'
+    entrypoint: 'sh'
     args:
-      - -f
-      - -k
-      - https://${_SRE_DOMAIN}/
-    waitFor: ['-']
-    
-  # Verificação do cluster
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      - get
-      - nodes
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-      
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      - get
-      - pods
-      - -A
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
-    
+      - '-c'
+      - 'curl --fail --retry 5 --retry-delay 10 https://${_DEVOPS_DOMAIN}/'
+
 timeout: '1800s'
 options:
   logging: CLOUD_LOGGING_ONLY

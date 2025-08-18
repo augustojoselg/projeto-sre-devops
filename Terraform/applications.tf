@@ -1,15 +1,15 @@
 # Aplicações DevOps e SRE
 # Este arquivo automatiza o deploy completo das aplicações
 
-# 1. Verificar se o namespace DevOps existe
-data "kubernetes_namespace" "devops" {
+# 1. Cria o namespace DevOps
+resource "kubernetes_namespace" "devops" {
   metadata {
     name = "devops"
   }
 }
 
-# 2. Verificar se o namespace SRE existe
-data "kubernetes_namespace" "sre" {
+# 2. Cria o namespace SRE
+resource "kubernetes_namespace" "sre" {
   metadata {
     name = "sre"
   }
@@ -19,7 +19,7 @@ data "kubernetes_namespace" "sre" {
 resource "kubernetes_deployment" "devops_whoami" {
   metadata {
     name      = "devops-whoami"
-    namespace = data.kubernetes_namespace.devops.metadata[0].name
+    namespace = kubernetes_namespace.devops.metadata[0].name
     labels = {
       app = "devops-whoami"
     }
@@ -93,7 +93,7 @@ resource "kubernetes_deployment" "devops_whoami" {
 resource "kubernetes_deployment" "sre_whoami" {
   metadata {
     name      = "sre-whoami"
-    namespace = data.kubernetes_namespace.sre.metadata[0].name
+    namespace = kubernetes_namespace.sre.metadata[0].name
     labels = {
       app = "sre-whoami"
     }
@@ -164,20 +164,10 @@ resource "kubernetes_deployment" "sre_whoami" {
 }
 
 # --- DEVOPS ---
-# Verifica se o serviço já existe
-data "kubernetes_service" "existing_devops_service" {
-  metadata {
-    name      = "devops-whoami-service"
-    namespace = "devops"
-  }
-}
-
 resource "kubernetes_service" "devops_whoami_service" {
-  count = data.kubernetes_service.existing_devops_service.id == "" ? 1 : 0
-
   metadata {
     name      = "devops-whoami-service"
-    namespace = data.kubernetes_namespace.devops.metadata[0].name
+    namespace = kubernetes_namespace.devops.metadata[0].name
   }
 
   spec {
@@ -198,20 +188,10 @@ resource "kubernetes_service" "devops_whoami_service" {
 }
 
 # --- SRE ---
-# Verifica se o serviço já existe
-data "kubernetes_service" "existing_sre_service" {
-  metadata {
-    name      = "sre-whoami-service"
-    namespace = "sre"
-  }
-}
-
 resource "kubernetes_service" "sre_whoami_service" {
-  count = data.kubernetes_service.existing_sre_service.id == "" ? 1 : 0
-
   metadata {
     name      = "sre-whoami-service"
-    namespace = data.kubernetes_namespace.sre.metadata[0].name
+    namespace = kubernetes_namespace.sre.metadata[0].name
   }
 
   spec {
@@ -232,20 +212,10 @@ resource "kubernetes_service" "sre_whoami_service" {
 }
 
 # --- DEVOPS ---
-# Verifica se o Ingress já existe
-data "kubernetes_ingress_v1" "existing_devops_ingress" {
-  metadata {
-    name      = "devops-whoami-ingress"
-    namespace = "devops"
-  }
-}
-
 resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
-  count = data.kubernetes_ingress_v1.existing_devops_ingress.id == "" ? 1 : 0
-
   metadata {
     name      = "devops-whoami-ingress"
-    namespace = data.kubernetes_namespace.devops.metadata[0].name
+    namespace = kubernetes_namespace.devops.metadata[0].name
     annotations = {
       "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
@@ -269,7 +239,7 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
           path_type = "Prefix"
           backend {
             service {
-              name = data.kubernetes_service.existing_devops_service.id != "" ? data.kubernetes_service.existing_devops_service.metadata[0].name : kubernetes_service.devops_whoami_service[0].metadata[0].name
+              name = kubernetes_service.devops_whoami_service.metadata[0].name
               port {
                 number = 80
               }
@@ -282,20 +252,10 @@ resource "kubernetes_ingress_v1" "devops_whoami_ingress" {
 }
 
 # --- SRE ---
-# Verifica se o Ingress já existe
-data "kubernetes_ingress_v1" "existing_sre_ingress" {
-  metadata {
-    name      = "sre-whoami-ingress"
-    namespace = "sre"
-  }
-}
-
 resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
-  count = data.kubernetes_ingress_v1.existing_sre_ingress.id == "" ? 1 : 0
-
   metadata {
     name      = "sre-whoami-ingress"
-    namespace = data.kubernetes_namespace.sre.metadata[0].name
+    namespace = kubernetes_namespace.sre.metadata[0].name
     annotations = {
       "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
@@ -319,7 +279,7 @@ resource "kubernetes_ingress_v1" "sre_whoami_ingress" {
           path_type = "Prefix"
           backend {
             service {
-              name = data.kubernetes_service.existing_sre_service.id != "" ? data.kubernetes_service.existing_sre_service.metadata[0].name : kubernetes_service.sre_whoami_service[0].metadata[0].name
+              name = kubernetes_service.sre_whoami_service.metadata[0].name
               port {
                 number = 80
               }
@@ -346,10 +306,10 @@ output "sre_application_url" {
 
 output "devops_namespace" {
   description = "Namespace da aplicação DevOps"
-  value       = data.kubernetes_namespace.devops.metadata[0].name
+  value       = kubernetes_namespace.devops.metadata[0].name
 }
 
 output "sre_namespace" {
   description = "Namespace da aplicação SRE"
-  value       = data.kubernetes_namespace.sre.metadata[0].name
+  value       = kubernetes_namespace.sre.metadata[0].name
 }

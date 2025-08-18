@@ -7,17 +7,17 @@ provider "google" {
 
 # Configuração do provedor Kubernetes (após criar o cluster)
 provider "kubernetes" {
-  host                   = "https://${data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint}"
+  host                   = "https://${google_container_cluster.primary.endpoint}"
   token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.master_auth[0].cluster_ca_certificate : google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
+  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
 }
 
 # Configuração do provedor Helm
 provider "helm" {
   kubernetes {
-    host                   = "https://${data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint}"
+    host                   = "https://${google_container_cluster.primary.endpoint}"
     token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.master_auth[0].cluster_ca_certificate : google_container_cluster.primary[0].master_auth[0].cluster_ca_certificate)
+    cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
   }
 }
 
@@ -32,42 +32,21 @@ module "service_account" {
   region     = var.region
 }
 
-# 1. VPC e Subnets (REUTILIZÁVEL - só cria se não existir)
-# Verificar se a VPC já existe
-data "google_compute_network" "existing_vpc" {
-  name = "${var.project_id}-vpc"
-}
-
-# Fallback para criar VPC se não existir
+# 1. VPC e Subnets
 resource "google_compute_network" "vpc" {
-  count                   = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? 0 : 1
   name                    = "${var.project_id}-vpc"
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
 
   depends_on = [google_project_service.compute]
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-# Verificar se a subnet já existe
-data "google_compute_subnetwork" "existing_subnet" {
-  name   = "${var.project_id}-subnet"
-  region = var.region
-}
-
-# Fallback para criar subnet se não existir
 resource "google_compute_subnetwork" "subnet" {
-  count         = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? 0 : 1
   name          = "${var.project_id}-subnet"
   ip_cidr_range = var.subnet_cidr
-  network       = local.vpc_id
+  network       = google_compute_network.vpc.id
   region        = var.region
 
-  # Habilitar logs de fluxo para monitoramento
   log_config {
     aggregation_interval = "INTERVAL_5_SEC"
     flow_sampling        = 0.5
@@ -77,32 +56,21 @@ resource "google_compute_subnetwork" "subnet" {
   depends_on = [google_project_service.compute]
 }
 
-# Usar VPC existente ou criada
-locals {
-  vpc_id    = data.google_compute_network.existing_vpc.name == "${var.project_id}-vpc" ? data.google_compute_network.existing_vpc.id : google_compute_network.vpc[0].id
-  subnet_id = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.id : google_compute_subnetwork.subnet[0].id
-}
-
 # Cluster GKE com configurações otimizadas
-# Verificar se o cluster já existe
-data "google_container_cluster" "existing_cluster" {
-  name     = "${var.project_id}-cluster"
-  location = var.region
-}
-
-# Fallback para criar cluster se não existir
 resource "google_container_cluster" "primary" {
-  count    = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? 0 : 1
   name     = "${var.project_id}-cluster"
   location = var.region
   project  = var.project_id
+
+  # Garante que o total de nós seja o especificado, não "por zona"
+  node_locations = var.node_locations
 
   # DESABILITADO AUTOPILOT - Cluster Standard para controle total
   # enable_autopilot = false  # Removido para usar cluster Standard
 
   # Configuração de rede
-  network    = local.vpc_id
-  subnetwork = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.name : google_compute_subnetwork.subnet[0].name
+  network    = google_compute_network.vpc.id
+  subnetwork = google_compute_subnetwork.subnet.name
 
   # Configuração de IP para pods e serviços
   ip_allocation_policy {
@@ -245,7 +213,7 @@ resource "google_container_cluster" "primary" {
 
   # Lifecycle para evitar destruição acidental
   lifecycle {
-    prevent_destroy = false # Permitir destruição para mudança de região
+    prevent_destroy = true # Impede a destruição acidental do cluster
     ignore_changes = [
       node_pool[0].node_config[0].resource_labels,
       node_pool[0].node_config[0].kubelet_config
@@ -269,10 +237,9 @@ resource "google_project_iam_member" "gke_node_worker" {
 }
 
 # 6. Firewall para o cluster
-# Fallback para criar firewall master se não existir
 resource "google_compute_firewall" "gke_master" {
   name    = "gke-master-${var.project_id}"
-  network = local.vpc_id
+  network = google_compute_network.vpc.id
 
   allow {
     protocol = "tcp"
@@ -281,17 +248,11 @@ resource "google_compute_firewall" "gke_master" {
 
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-master"]
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-# Fallback para criar firewall nodes se não existir
 resource "google_compute_firewall" "gke_nodes" {
   name    = "gke-nodes-${var.project_id}"
-  network = local.vpc_id
+  network = google_compute_network.vpc.id
 
   allow {
     protocol = "tcp"
@@ -305,54 +266,21 @@ resource "google_compute_firewall" "gke_nodes" {
 
   source_ranges = var.allowed_ip_ranges
   target_tags   = ["gke-node"]
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 # 7. Cloud NAT para nós privados
-# Verificar se o router já existe
-data "google_compute_router" "existing_router" {
-  name    = "${var.project_id}-router"
-  region  = var.region
-  network = local.vpc_id
-}
-
-# Fallback para criar router se não existir
 resource "google_compute_router" "router" {
-  count   = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? 0 : 1
   name    = "${var.project_id}-router"
   region  = var.region
-  network = local.vpc_id
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
+  network = google_compute_network.vpc.id
 }
 
-# Verificar se o NAT já existe
-data "google_compute_router_nat" "existing_nat" {
-  name   = "${var.project_id}-nat"
-  router = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
-  region = var.region
-}
-
-# Fallback para criar NAT se não existir
 resource "google_compute_router_nat" "nat" {
-  count                              = data.google_compute_router_nat.existing_nat.name == "${var.project_id}-nat" ? 0 : 1
   name                               = "${var.project_id}-nat"
-  router                             = data.google_compute_router.existing_router.name == "${var.project_id}-router" ? data.google_compute_router.existing_router.name : google_compute_router.router[0].name
+  router                             = google_compute_router.router.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 
@@ -395,7 +323,7 @@ resource "google_compute_router_nat" "nat" {
 
 
 
-# 14. Cloud Armor para segurança adicional (REUTILIZÁVEL)
+# 14. Cloud Armor para segurança adicional
 resource "google_compute_security_policy" "security_policy" {
   name = "security-policy"
 
@@ -464,41 +392,15 @@ resource "google_compute_security_policy" "security_policy" {
   }
 }
 
-# Usar Security Policy criada
-locals {
-  security_policy_id = google_compute_security_policy.security_policy.id
-}
-
-# 15. Cloud KMS para criptografia (REUTILIZÁVEL)
-# Verificar se o Key Ring já existe
-data "google_kms_key_ring" "existing_keyring" {
-  name     = "gke-keyring"
-  location = var.region
-}
-
-# Fallback para criar Key Ring se não existir
+# 15. Cloud KMS para criptografia
 resource "google_kms_key_ring" "keyring" {
-  count    = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? 0 : 1
   name     = "gke-keyring"
   location = var.region
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-# Verificar se o Crypto Key já existe
-data "google_kms_crypto_key" "existing_key" {
-  name     = "gke-key"
-  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
-}
-
-# Fallback para criar Crypto Key se não existir
 resource "google_kms_crypto_key" "key" {
-  count    = data.google_kms_crypto_key.existing_key.name == "gke-key" ? 0 : 1
   name     = "gke-key"
-  key_ring = data.google_kms_key_ring.existing_keyring.name == "gke-keyring" ? data.google_kms_key_ring.existing_keyring.id : google_kms_key_ring.keyring[0].id
+  key_ring = google_kms_key_ring.keyring.id
 
   lifecycle {
     prevent_destroy       = true
@@ -506,21 +408,11 @@ resource "google_kms_crypto_key" "key" {
   }
 }
 
-# Usar Crypto Key existente ou criado
-locals {
-  crypto_key_id = data.google_kms_crypto_key.existing_key.name == "gke-key" ? data.google_kms_crypto_key.existing_key.id : google_kms_crypto_key.key[0].id
-}
-
 # 16. IAM para Cloud KMS
 resource "google_kms_crypto_key_iam_member" "crypto_key" {
-  crypto_key_id = local.crypto_key_id
+  crypto_key_id = google_kms_crypto_key.key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${data.google_service_account.gke_node.email}"
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 
@@ -615,49 +507,24 @@ resource "google_kms_crypto_key_iam_member" "crypto_key" {
 #   }
 # }
 
-# 25. Load Balancer para alta disponibilidade (REUTILIZÁVEL - só cria se não existir)
-# Verificar se o Health Check já existe
-data "google_compute_health_check" "existing_health_check" {
-  name = "health-check"
-}
-
-# Fallback para criar Health Check se não existir
+# 25. Load Balancer para alta disponibilidade
 resource "google_compute_health_check" "default" {
-  count = data.google_compute_health_check.existing_health_check.name == "health-check" ? 0 : 1
-  name  = "health-check"
+  name = "health-check"
 
   http_health_check {
     port = 8000
   }
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-# Fallback para criar SSL Certificate se não existir
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "managed-ssl-certificate"
 
   managed {
     domains = [var.domain_name]
   }
-
-  # Tornar reutilizável
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-# Verificar se o DNS Zone já existe
-data "google_dns_managed_zone" "existing_dns_zone" {
-  name = "default-zone"
-}
-
-# Fallback para criar DNS Zone se não existir
 resource "google_dns_managed_zone" "default" {
-  count       = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? 0 : 1
   name        = "default-zone"
   dns_name    = "${var.domain_name}."
   description = "DNS zone for the project"
@@ -666,7 +533,7 @@ resource "google_dns_managed_zone" "default" {
 # 26. DNS para o domínio
 resource "google_dns_record_set" "default" {
   name         = "${var.domain_name}."
-  managed_zone = data.google_dns_managed_zone.existing_dns_zone.name == "default-zone" ? data.google_dns_managed_zone.existing_dns_zone.name : google_dns_managed_zone.default[0].name
+  managed_zone = google_dns_managed_zone.default.name
   type         = "A"
   ttl          = 300
 

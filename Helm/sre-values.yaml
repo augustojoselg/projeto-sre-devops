@@ -1,0 +1,25 @@
+name: "sre-whoami"
+namespace: "sre"
+replicaCount: 3
+
+image:
+  repository: "jwilder/whoami"
+  tag: "latest"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: sre.tisl.com.br
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+   - secretName: sre-whoami-tls-cert
+     hosts:
+       - sre.tisl.com.br
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80

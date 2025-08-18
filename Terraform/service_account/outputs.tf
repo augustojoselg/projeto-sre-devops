@@ -1,10 +1,10 @@
 output "devops_email" {
-  description = "E-mail da conta de serviço DevOps"
-  value       = data.google_service_account.existing_devops_sa.email != "" ? data.google_service_account.existing_devops_sa.email : google_service_account.devops[0].email
+  description = "Email da conta de serviço DevOps criada"
+  value       = google_service_account.devops.email
 }
 
 output "devops_private_key" {
-  description = "Chave privada da conta de serviço DevOps (codificada em Base64)"
+  description = "Chave privada (codificada em Base64) da conta de serviço DevOps"
   value       = google_service_account_key.devops_key.private_key
   sensitive   = true
 }

@@ -37,31 +37,31 @@ variable "services_cidr" {
 variable "node_locations" {
   description = "Localizações dos nós para alta disponibilidade"
   type        = list(string)
-  default     = ["us-west1-a", "us-west1-b"]
+  default     = ["us-west1-a", "us-west1-b", "us-west1-c"] # Usando as 3 zonas
 }
 
 variable "node_count" {
-  description = "Número inicial de nós"
+  description = "Número inicial de nós por zona"
   type        = number
-  default     = 1
+  default     = 1 # 1 nó por zona = 3 nós no total
 }
 
 variable "min_node_count" {
-  description = "Número mínimo de nós"
+  description = "Número mínimo de nós por zona"
   type        = number
-  default     = 1
+  default     = 1 # 1 nó por zona
 }
 
 variable "max_node_count" {
-  description = "Número máximo de nós"
+  description = "Número máximo de nós por zona"
   type        = number
-  default     = 2
+  default     = 1 # 1 nó por zona, efetivamente desativa o autoscaling para cima
 }
 
 variable "machine_type" {
   description = "Tipo de máquina para os nós"
   type        = string
-  default     = "e2-standard-2"
+  default     = "e2-standard-2" # Restaurado para e2-standard-2
 }
 
 variable "disk_size_gb" {

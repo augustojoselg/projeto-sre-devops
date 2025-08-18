@@ -1,38 +1,31 @@
 output "cluster_name" {
   description = "Nome do cluster GKE"
-  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.name : google_container_cluster.primary[0].name
+  value       = google_container_cluster.primary.name
 }
 
 output "cluster_endpoint" {
   description = "Endpoint do cluster GKE"
-  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.endpoint : google_container_cluster.primary[0].endpoint
+  value       = google_container_cluster.primary.endpoint
 }
 
 output "cluster_location" {
   description = "Localização do cluster GKE"
-  value       = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.location : google_container_cluster.primary[0].location
+  value       = google_container_cluster.primary.location
 }
 
-
-
 output "vpc_name" {
-  description = "Nome da VPC criada"
-  value       = local.vpc_id
+  description = "Nome da VPC"
+  value       = google_compute_network.vpc.name
 }
 
 output "subnet_name" {
   description = "Nome da subnet"
-  value       = data.google_compute_subnetwork.existing_subnet.name == "${var.project_id}-subnet" ? data.google_compute_subnetwork.existing_subnet.name : google_compute_subnetwork.subnet[0].name
+  value       = google_compute_subnetwork.subnet.name
 }
 
 output "load_balancer_ip" {
-  description = "IP do load balancer (Ingress Controller)"
-  value       = "A ser configurado pelo Ingress Controller"
-}
-
-output "domain_name" {
-  description = "Nome do domínio configurado"
-  value       = var.domain_name
+  description = "IP do Load Balancer (configurado pelo Ingress)"
+  value       = "Verificar o serviço do Ingress Controller após a implantação"
 }
 
 

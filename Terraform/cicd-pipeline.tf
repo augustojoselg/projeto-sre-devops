@@ -31,10 +31,10 @@ resource "google_cloudbuild_trigger" "app_trigger" {
   filename = "cloudbuild.yaml"
 
   substitutions = {
-    _CLUSTER_NAME  = data.google_container_cluster.existing_cluster.name == "${var.project_id}-cluster" ? data.google_container_cluster.existing_cluster.name : google_container_cluster.primary[0].name
-    _ZONE          = var.zone
     _PROJECT_ID    = var.project_id
     _REGION        = var.region
+    _CLUSTER_NAME  = google_container_cluster.primary.name
+    _ZONE          = var.zone
     _DEVOPS_DOMAIN = var.devops_domain
     _SRE_DOMAIN    = var.sre_domain
   }
@@ -43,6 +43,8 @@ resource "google_cloudbuild_trigger" "app_trigger" {
   lifecycle {
     create_before_destroy = true
   }
+
+  depends_on = [google_project_service.cloudbuild]
 }
 
 # 2. Cloud Build Trigger para infraestrutura
