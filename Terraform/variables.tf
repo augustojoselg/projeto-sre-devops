@@ -100,6 +100,12 @@ variable "sre_domain" {
   default     = "sre.tisl.com.br"
 }
 
+variable "cert_manager_email" {
+  description = "Email para o cert-manager (Let's Encrypt)"
+  type        = string
+  default     = "augustojoselg@gmail.com"
+}
+
 variable "github_owner" {
   description = "Proprietário do repositório GitHub"
   type        = string
