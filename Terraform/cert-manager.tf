@@ -31,36 +31,8 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# 2. ClusterIssuer para Let's Encrypt (após cert-manager estar instalado)
-resource "kubernetes_manifest" "cluster_issuer" {
-  depends_on = [helm_release.cert_manager]
-
-  manifest = {
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-    metadata = {
-      name = "letsencrypt-prod"
-    }
-    spec = {
-      acme = {
-        server = "https://acme-v02.api.letsencrypt.org/directory"
-        email = var.cert_manager_email
-        privateKeySecretRef = {
-          name = "letsencrypt-prod"
-        }
-        solvers = [
-          {
-            http01 = {
-              ingress = {
-                class = "nginx"
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-}
+# 2. ClusterIssuer será criado manualmente após a instalação do cert-manager
+# ou via kubectl após o cluster estar funcionando
 
 # 3. Outputs para verificação do status
 output "cert_manager_status" {
@@ -70,6 +42,6 @@ output "cert_manager_status" {
 
 output "cluster_issuer_status" {
   description = "Status do ClusterIssuer"
-  value       = "configured"
-  depends_on  = [kubernetes_manifest.cluster_issuer]
+  value       = "pending_manual_creation"
+  depends_on  = [helm_release.cert_manager]
 }
