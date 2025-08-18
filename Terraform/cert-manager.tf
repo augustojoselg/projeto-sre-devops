@@ -35,13 +35,17 @@ resource "helm_release" "cert_manager" {
 # ou via kubectl após o cluster estar funcionando
 
 # 3. Outputs para verificação do status
-output "cert_manager_status" {
-  description = "Status da instalação do cert-manager"
-  value       = helm_release.cert_manager.status
+output "cert_manager_version" {
+  description = "Versão instalada do cert-manager"
+  value       = helm_release.cert_manager.version
+}
+
+output "cert_manager_namespace" {
+  description = "Namespace do cert-manager"
+  value       = helm_release.cert_manager.namespace
 }
 
 output "cluster_issuer_status" {
-  description = "Status do ClusterIssuer"
+  description = "Status do ClusterIssuer (manual)"
   value       = "pending_manual_creation"
-  depends_on  = [helm_release.cert_manager]
 }
