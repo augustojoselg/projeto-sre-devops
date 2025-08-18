@@ -32,10 +32,10 @@ resource "helm_release" "cert_manager" {
 }
 
 # 2. ClusterIssuer para Let's Encrypt (após cert-manager estar instalado)
-resource "kubectl_manifest" "cluster_issuer" {
+resource "kubernetes_manifest" "cluster_issuer" {
   depends_on = [helm_release.cert_manager]
 
-  yaml_body = yamlencode({
+  manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
     metadata = {
@@ -59,7 +59,7 @@ resource "kubectl_manifest" "cluster_issuer" {
         ]
       }
     }
-  })
+  }
 }
 
 # 3. Outputs para verificação do status
@@ -70,5 +70,5 @@ output "cert_manager_status" {
 
 output "cluster_issuer_status" {
   description = "Status do ClusterIssuer"
-  value       = kubectl_manifest.cluster_issuer.uid
+  value       = kubernetes_manifest.cluster_issuer.uid
 }
