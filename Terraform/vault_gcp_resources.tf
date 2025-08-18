@@ -31,6 +31,8 @@ resource "google_storage_bucket_iam_member" "vault_storage_access" {
   bucket = google_storage_bucket.vault_storage.name
   role   = "roles/storage.objectAdmin"
   member = google_service_account.vault.member
+
+  depends_on = [google_service_account.vault]
 }
 
 # Permissão para usar a chave KMS
@@ -38,6 +40,8 @@ resource "google_kms_crypto_key_iam_member" "vault_kms_access" {
   crypto_key_id = google_kms_crypto_key.vault_unseal.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = google_service_account.vault.member
+
+  depends_on = [google_service_account.vault]
 }
 
 # 5. Vínculo entre a Conta de Serviço do Kubernetes (KSA) e a GSA do Google
@@ -46,4 +50,6 @@ resource "google_service_account_iam_member" "vault_ksa_binding" {
   service_account_id = google_service_account.vault.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[vault/vault]"
+
+  depends_on = [google_service_account.vault]
 }
