@@ -143,3 +143,9 @@ variable "discord_webhook_url" {
   default     = ""
   sensitive   = true
 }
+
+variable "destroy_vault_release" {
+  description = "Se true, irá destruir o helm release do Vault antes de aplicar."
+  type        = bool
+  default     = false
+}

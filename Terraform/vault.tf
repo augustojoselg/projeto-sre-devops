@@ -7,6 +7,7 @@ resource "kubernetes_namespace" "vault" {
 
 # 2. Instalação do HashiCorp Vault via Helm
 resource "helm_release" "vault" {
+  count      = var.destroy_vault_release ? 0 : 1
   name       = "vault"
   repository = "https://helm.releases.hashicorp.com"
   chart      = "vault"

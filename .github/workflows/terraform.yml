@@ -76,10 +76,10 @@ jobs:
         TF_VAR_region: ${{ secrets.GOOGLE_REGION }}
         TF_VAR_zone: ${{ secrets.GOOGLE_CLUSTER_ZONE }}
 
-    - name: Terraform Apply
+    - name: Terraform Apply (Destroy Vault)
       if: github.ref == 'refs/heads/main'
       working-directory: ./Terraform
-      run: terraform apply -auto-approve tfplan
+      run: terraform apply -auto-approve -var="destroy_vault_release=true"
       env:
         KUBECONFIG: ${{ env.KUBECONFIG }}
         TF_VAR_project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
