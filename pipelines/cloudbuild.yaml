@@ -6,7 +6,7 @@ steps:
     args:
       - '-c'
       - 'terraform fmt -check'
-    dir: 'Terraform'
+    dir: 'infra'
 
   - name: 'hashicorp/terraform:1.5.7'
     id: 'Validate'
@@ -14,7 +14,7 @@ steps:
     args:
       - '-c'
       - 'terraform init && terraform validate'
-    dir: 'Terraform'
+    dir: 'infra'
 
   # Etapa 2: Escanear manifestos Kubernetes com Trivy
   - name: 'aquasec/trivy:latest'
@@ -23,8 +23,8 @@ steps:
     args:
       - '-c'
       - |
-        helm template devops-release ./Helm/app-chart --values ./Helm/devops-values.yaml > devops.yaml
-        helm template sre-release ./Helm/app-chart --values ./Helm/sre-values.yaml > sre.yaml
+        helm template devops-release ./charts/app-chart --values ./charts/devops-values.yaml > devops.yaml
+        helm template sre-release ./charts/app-chart --values ./charts/sre-values.yaml > sre.yaml
         trivy config --exit-code 1 --severity CRITICAL devops.yaml
         trivy config --exit-code 1 --severity CRITICAL sre.yaml
 
@@ -35,7 +35,7 @@ steps:
     args:
       - '-c'
       - 'terraform init && terraform plan -out=tfplan'
-    dir: 'Terraform'
+    dir: 'infra'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Apply'
@@ -43,7 +43,7 @@ steps:
     args:
       - '-c'
       - 'terraform init && terraform apply -auto-approve tfplan'
-    dir: 'Terraform'
+    dir: 'infra'
 
   # Etapa 4: Configurar kubectl para o cluster
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -60,8 +60,8 @@ steps:
     args:
       - '-c'
       - |
-        helm upgrade --install sre-whoami ./Helm/app-chart \
-          --values ./Helm/sre-values.yaml \
+        helm upgrade --install sre-whoami ./charts/app-chart \
+          --values ./charts/sre-values.yaml \
           --namespace sre --create-namespace \
           --wait
   
@@ -71,8 +71,8 @@ steps:
     args:
       - '-c'
       - |
-        helm upgrade --install devops-whoami ./Helm/app-chart \
-          --values ./Helm/devops-values.yaml \
+        helm upgrade --install devops-whoami ./charts/app-chart \
+          --values ./charts/devops-values.yaml \
           --namespace devops --create-namespace \
           --wait
 

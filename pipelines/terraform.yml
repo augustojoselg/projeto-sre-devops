@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Terraform/**'
-      - '.github/workflows/terraform.yml'
+      - 'infra/**'
+      - 'pipelines/terraform.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'Terraform/**'
-      - '.github/workflows/terraform.yml'
+      - 'infra/**'
+      - 'pipelines/terraform.yml'
 
 permissions:
   contents: 'read'
@@ -62,19 +62,19 @@ jobs:
         echo "KUBE_CONFIG_PATH=$KUBECONFIG" >> $GITHUB_ENV
 
     - name: Terraform Init
-      working-directory: ./Terraform
+      working-directory: ./infra
       run: terraform init
       env:
         KUBECONFIG: ${{ env.KUBECONFIG }}
 
     - name: Terraform Format Check
-      working-directory: ./Terraform
+      working-directory: ./infra
       run: terraform fmt -check
       env:
         KUBECONFIG: ${{ env.KUBECONFIG }}
 
     - name: Terraform Plan
-      working-directory: ./Terraform
+      working-directory: ./infra
       run: terraform plan -out=tfplan
       env:
         KUBECONFIG: ${{ env.KUBECONFIG }}
@@ -86,7 +86,7 @@ jobs:
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main'
-      working-directory: ./Terraform
+      working-directory: ./infra
       run: terraform apply -auto-approve tfplan
       env:
         KUBECONFIG: ${{ env.KUBECONFIG }}
@@ -98,13 +98,13 @@ jobs:
 
     - name: Verify Deployments
       if: github.ref == 'refs/heads/main'
+      working-directory: ./infra
       run: |
-        kubectl get pods -n devops
-        kubectl get pods -n sre
-        kubectl get services -n devops
-        kubectl get services -n sre
-        kubectl get ingress -n devops
-        kubectl get ingress -n sre
+        echo "Verificando deployments..."
+        kubectl get deployments --all-namespaces
+        kubectl get pods --all-namespaces
+      env:
+        KUBECONFIG: ${{ env.KUBECONFIG }}
 
     - name: Health Check
       if: github.ref == 'refs/heads/main'
