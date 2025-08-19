@@ -406,17 +406,16 @@
 # }
 
 # 9. Namespace para stress testing
-# COMENTADO - será habilitado após cluster estar ativo
-# resource "kubernetes_namespace" "stress_testing" {
-#   metadata {
-#     name = "stress-testing"
-#     labels = {
-#       name = "stress-testing"
-#     }
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_namespace" "stress_testing" {
+  metadata {
+    name = "stress-testing"
+    labels = {
+      name = "stress-testing"
+    }
+  }
+
+  depends_on = [google_container_cluster.primary]
+}
 
 # IMPORTANTE: Este arquivo será descomentado após o cluster GKE estar ativo
 # Execute: terraform apply para criar apenas a infraestrutura básica

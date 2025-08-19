@@ -4,195 +4,196 @@
 # Execute: terraform apply para criar apenas a infraestrutura básica
 # Depois: Descomente este arquivo e execute novamente para criar os recursos Kubernetes
 
-# 1. Network Policies para isolamento de rede (COMENTADO - não compatível com GKE Autopilot)
-# resource "kubernetes_network_policy" "default_deny" {
-#   metadata {
-#     name      = "default-deny"
-#     namespace = "default"
-#   }
-#   
-#   spec {
-#     pod_selector {}
-#     policy_types = ["Ingress", "Egress"]
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+# 1. Network Policies para isolamento de rede (GKE Standard)
+resource "kubernetes_network_policy" "default_deny" {
+  metadata {
+    name      = "default-deny"
+    namespace = "default"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
-# resource "kubernetes_network_policy" "monitoring_allow" {
-#   metadata {
-#     name      = "monitoring-allow"
-#     namespace = "monitoring"
-#   }
-#   
-#   spec {
-#     pod_selector {}
-#     policy_types = ["Ingress", "Egress"]
-#     
-#     ingress {
-#       from {
-#         namespace_selector {
-#           match_labels = {
-#             name = "monitoring"
-#           }
-#         }
-#       }
-#     }
-#     
-#     egress {
-#       to {
-#         namespace_selector {
-#           match_labels = {
-#             name = "monitoring"
-#           }
-#         }
-#       }
-#     }
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_network_policy" "monitoring_allow" {
+  metadata {
+    name      = "monitoring-allow"
+    namespace = "monitoring"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+    }
+    
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+    }
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 2. Pod Security Standards (substitui Pod Security Policies deprecated)
-# resource "kubernetes_namespace" "restricted" {
-#   metadata {
-#     name = "restricted"
-#     labels = {
-#       "pod-security.kubernetes.io/enforce" = "restricted"
-#       "pod-security.kubernetes.io/audit"  = "restricted"
-#       "pod-security.kubernetes.io/warn"   = "restricted"
-#     }
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_namespace" "restricted" {
+  metadata {
+    name = "restricted"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "restricted"
+      "pod-security.kubernetes.io/audit"  = "restricted"
+      "pod-security.kubernetes.io/warn"   = "restricted"
+    }
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
-# resource "kubernetes_namespace" "baseline" {
-#   metadata {
-#     name = "baseline"
-#     labels = {
-#       "pod-security.kubernetes.io/enforce" = "baseline"
-#       "pod-security.kubernetes.io/audit"  = "baseline"
-#       "pod-security.kubernetes.io/warn"   = "baseline"
-#     }
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_namespace" "baseline" {
+  metadata {
+    name = "baseline"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "baseline"
+      "pod-security.kubernetes.io/audit"  = "baseline"
+      "pod-security.kubernetes.io/warn"   = "baseline"
+    }
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 3. Service Account para aplicações
-# resource "kubernetes_service_account" "app_sa" {
-#   metadata {
-#     name      = "app-service-account"
-#     namespace = "default"
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_service_account" "app_sa" {
+  metadata {
+    name      = "app-service-account"
+    namespace = "default"
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 4. Cluster Role para aplicações
-# resource "kubernetes_cluster_role" "app_role" {
-#   metadata {
-#     name = "app-role"
-#   }
-#   
-#   rule {
-#     api_groups = [""]
-#     resources  = ["pods", "services", "endpoints"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   rule {
-#     api_groups = ["apps"]
-#     resources  = ["deployments", "replicasets"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_cluster_role" "app_role" {
+  metadata {
+    name = "app-role"
+  }
+  
+  rule {
+    api_groups = [""]
+    resources  = ["pods", "services", "endpoints"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  rule {
+    api_groups = ["apps"]
+    resources  = ["deployments", "replicasets"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 5. Cluster Role Binding para aplicações
-# resource "kubernetes_cluster_role_binding" "app_role_binding" {
-#   metadata {
-#     name = "app-role-binding"
-#   }
-#   
-#   role_ref {
-#     api_group = "rbac.authorization.k8s.io"
-#     kind      = "ClusterRole"
-#     name      = kubernetes_cluster_role.app_role.metadata[0].name
-#   }
-#   
-#   subject {
-#     kind      = "ServiceAccount"
-#     name      = kubernetes_service_account.app_sa.metadata[0].name
-#     namespace = kubernetes_service_account.app_sa.metadata[0].namespace
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_cluster_role_binding" "app_role_binding" {
+  metadata {
+    name = "app-role-binding"
+  }
+  
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.app_role.metadata[0].name
+  }
+  
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.app_sa.metadata[0].name
+    namespace = kubernetes_service_account.app_sa.metadata[0].namespace
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 6. Cluster Role para monitoramento
-# resource "kubernetes_cluster_role" "monitoring_role" {
-#   metadata {
-#     name = "monitoring-role"
-#   }
-#   
-#   rule {
-#     api_groups = [""]
-#     resources  = ["pods", "services", "endpoints", "nodes"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   rule {
-#     api_groups = ["metrics.k8s.io"]
-#     resources  = ["pods", "nodes"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_cluster_role" "monitoring_role" {
+  metadata {
+    name = "monitoring-role"
+  }
+  
+  rule {
+    api_groups = [""]
+    resources  = ["pods", "services", "endpoints", "nodes"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  rule {
+    api_groups = ["metrics.k8s.io"]
+    resources  = ["pods", "nodes"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 7. Cluster Role Binding para monitoramento
-# resource "kubernetes_cluster_role_binding" "monitoring_role_binding" {
-#   metadata {
-#     name = "monitoring-role-binding"
-#   }
-#   
-#   role_ref {
-#     api_group = "rbac.authorization.k8s.io"
-#     kind      = "ClusterRole"
-#     name      = kubernetes_cluster_role.monitoring_role.metadata[0].name
-#   }
-#   
-#   subject {
-#     kind      = "ServiceAccount"
-#     name      = "prometheus-k8s"
-#     namespace = "monitoring"
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
-# }
+resource "kubernetes_cluster_role_binding" "monitoring_role_binding" {
+  metadata {
+    name = "monitoring-role-binding"
+  }
+  
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.monitoring_role.metadata[0].name
+  }
+  
+  subject {
+    kind      = "ServiceAccount"
+    name      = "prometheus-k8s"
+    namespace = "monitoring"
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 
 # 8. Cluster Role para logging
-# resource "kubernetes_cluster_role" "logging_role" {
-#   metadata {
-#     name = "logging-role"
-#   }
-#   
-#   rule {
-#     api_groups = [""]
-#     resources  = ["pods", "namespaces"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   rule {
-#     api_groups = [""]
-#     resources  = ["pods/log"]
-#     verbs      = ["get", "list", "watch"]
-#   }
-#   
-#   depends_on = [google_container_cluster.primary]
+resource "kubernetes_cluster_role" "logging_role" {
+  metadata {
+    name = "logging-role"
+  }
+  
+  rule {
+    api_groups = [""]
+    resources  = ["pods", "namespaces"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  rule {
+    api_groups = [""]
+    resources  = ["pods/log"]
+    verbs      = ["get", "list", "watch"]
+  }
+  
+  depends_on = [google_container_cluster.primary]
+}
 # }
 
 # 9. Cluster Role Binding para logging
@@ -427,6 +428,194 @@
 #   depends_on = [google_container_cluster.primary]
 # }
 
-# IMPORTANTE: Este arquivo será descomentado após o cluster GKE estar ativo
-# Execute: terraform apply para criar apenas a infraestrutura básica
-# Depois: Descomente este arquivo e execute novamente para criar os recursos Kubernetes
+# 9. Network Policy para namespace DevOps
+resource "kubernetes_network_policy" "devops_network_policy" {
+  metadata {
+    name      = "devops-network-policy"
+    namespace = "devops"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      ports {
+        port     = 80
+        protocol = "TCP"
+      }
+      ports {
+        port     = 443
+        protocol = "TCP"
+      }
+    }
+    
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "kube-system"
+          }
+        }
+      }
+    }
+  }
+}
+
+# 10. Network Policy para namespace SRE
+resource "kubernetes_network_policy" "sre_network_policy" {
+  metadata {
+    name      = "sre-network-policy"
+    namespace = "sre"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      ports {
+        port     = 80
+        protocol = "TCP"
+      }
+      ports {
+        port     = 443
+        protocol = "TCP"
+      }
+    }
+    
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "kube-system"
+          }
+        }
+      }
+    }
+  }
+}
+
+# 11. Network Policy para namespace APM
+resource "kubernetes_network_policy" "apm_network_policy" {
+  metadata {
+    name      = "apm-network-policy"
+    namespace = "apm"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      ports {
+        port     = 80
+        protocol = "TCP"
+      }
+      ports {
+        port     = 443
+        protocol = "TCP"
+      }
+    }
+    
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "kube-system"
+          }
+        }
+      }
+    }
+  }
+}
+
+# 12. Network Policy para namespace Logging
+resource "kubernetes_network_policy" "logging_network_policy" {
+  metadata {
+    name      = "logging-network-policy"
+    namespace = "logging"
+  }
+  
+  spec {
+    pod_selector {}
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      ports {
+        port     = 80
+        protocol = "TCP"
+      }
+      ports {
+        port     = 443
+        protocol = "TCP"
+      }
+    }
+    
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "monitoring"
+          }
+        }
+      }
+      to {
+        namespace_selector {
+          match_labels = {
+            name = "kube-system"
+          }
+        }
+      }
+    }
+  }
+}

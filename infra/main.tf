@@ -522,6 +522,13 @@ resource "google_compute_health_check" "default" {
   }
 }
 
+# 25. IP estático global para o Load Balancer
+resource "google_compute_global_address" "load_balancer_ip" {
+  name         = "load-balancer-ip"
+  description  = "IP estático global para o Load Balancer do Ingress"
+  address_type = "EXTERNAL"
+}
+
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "managed-ssl-certificate"
 
@@ -543,7 +550,7 @@ resource "google_dns_record_set" "default" {
   type         = "A"
   ttl          = 300
 
-  rrdatas = ["8.8.8.8"] # IP temporário - será atualizado pelo Ingress
+  rrdatas = [google_compute_global_address.load_balancer_ip.address]
 }
 
 # 27. Cloud Monitoring para métricas customizadas (SUBSTITUÍDO POR PROMETHEUS + GRAFANA)

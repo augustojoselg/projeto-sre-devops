@@ -13,7 +13,7 @@ resource "google_compute_firewall" "allow_ingress" {
     ports    = ["80", "443"]
   }
 
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "35.191.0.0/16", "130.211.0.0/22"]
   target_tags   = google_container_cluster.primary.node_config[0].tags
 }
 

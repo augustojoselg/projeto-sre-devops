@@ -24,8 +24,8 @@ output "subnet_name" {
 }
 
 output "load_balancer_ip" {
-  description = "IP do Load Balancer (configurado pelo Ingress)"
-  value       = "Verificar o serviço do Ingress Controller após a implantação"
+  description = "IP estático do Load Balancer"
+  value       = google_compute_global_address.load_balancer_ip.address
 }
 
 
